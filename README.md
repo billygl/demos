@@ -2,7 +2,7 @@
 
 A shelf of small, single-page interactive demos. Astro, no client framework.
 
-Live: `https://billygl.github.io/demos/`
+Live: `https://www.billygrados.com/demos/`
 
 ## Architecture
 
