@@ -17,24 +17,48 @@ import type { Lang } from '../../i18n/ui';
 /** The source negative. All crop math is relative to this. */
 export const SOURCE_RATIO = 1.43;
 
+/**
+ * Approximate horizontal resolution of the 15-perf 70mm negative, used as the
+ * detail baseline. Film has no pixel grid, so this is an equivalence, not a
+ * measurement — see the note on `detailPx`.
+ */
+export const SOURCE_DETAIL_PX = 18000;
+
 interface Geometry {
   id: string;
   ratio: number;
   ratioLabel: string;
   /** Effective resolution of this presentation, shown as a live stat. */
   resolution: string;
+  /**
+   * Approximate horizontal resolution in pixels, for the detail bar.
+   *
+   * Framing and detail are INDEPENDENT losses, and conflating them was a bug:
+   * IMAX with Laser keeps 100% of the frame while resolving roughly a quarter
+   * of the negative's detail, so a single "kept" number read as "loses
+   * nothing". For photochemical formats these are commonly-cited equivalences,
+   * not pixel counts — film has no grid.
+   */
+  detailPx: number;
 }
 
 const GEOMETRY: Geometry[] = [
-  { id: 'imax70',      ratio: 1.43,   ratioLabel: '1.43:1', resolution: '~18K' },
-  { id: 'imaxlaser',   ratio: 1.43,   ratioLabel: '1.43:1', resolution: '4K ×2' },
-  { id: 'imaxdigital', ratio: 1.90,   ratioLabel: '1.90:1', resolution: '2K–4K' },
-  { id: 'dolbyflat',   ratio: 1.85,   ratioLabel: '1.85:1', resolution: '4K' },
-  { id: 'std70',       ratio: 2.20,   ratioLabel: '2.20:1', resolution: '70mm' },
-  { id: 'scope',       ratio: 2.39,   ratioLabel: '2.39:1', resolution: '35mm' },
-  { id: 'uhd',         ratio: 16 / 9, ratioLabel: '1.78:1', resolution: '4K' },
-  { id: 'vertical',    ratio: 9 / 16, ratioLabel: '0.56:1', resolution: '1080p' },
+  { id: 'imax70',      ratio: 1.43,   ratioLabel: '1.43:1', resolution: '~18K',  detailPx: 18000 },
+  // Dual laser stacks two projectors for light output, NOT for resolution:
+  // it is 4K, not 8K. Labelling it "4K ×2" invited exactly that misreading.
+  { id: 'imaxlaser',   ratio: 1.43,   ratioLabel: '1.43:1', resolution: '4K',    detailPx: 4096 },
+  { id: 'imaxdigital', ratio: 1.90,   ratioLabel: '1.90:1', resolution: '2K–4K', detailPx: 2048 },
+  { id: 'dolbyflat',   ratio: 1.85,   ratioLabel: '1.85:1', resolution: '4K',    detailPx: 4096 },
+  { id: 'std70',       ratio: 2.20,   ratioLabel: '2.20:1', resolution: '~8K',   detailPx: 8000 },
+  { id: 'scope',       ratio: 2.39,   ratioLabel: '2.39:1', resolution: '~4K',   detailPx: 4000 },
+  { id: 'uhd',         ratio: 16 / 9, ratioLabel: '1.78:1', resolution: '4K',    detailPx: 3840 },
+  { id: 'vertical',    ratio: 9 / 16, ratioLabel: '0.56:1', resolution: '1080p', detailPx: 1080 },
 ];
+
+/** Share of the negative's linear detail this presentation resolves. */
+export function detailFraction(detailPx: number) {
+  return Math.min(1, detailPx / SOURCE_DETAIL_PX);
+}
 
 interface FormatText {
   cat: string;
@@ -53,16 +77,16 @@ const TEXT: Record<Lang, Record<string, FormatText>> = {
   // ── Español: escrito para un lector en Perú / Latinoamérica ─────────
   es: {
     imax70: {
-      cat: 'Como Nolan la filmó', name: 'IMAX 70mm (15 perforaciones)',
+      cat: 'Completa, como se filmó', name: 'IMAX 70mm (15 perforaciones)',
       venue: 'Proyección en película IMAX',
       headline: 'Solo ~40 de las ~1,800 salas IMAX del mundo pueden proyectarla. Ninguna está en Latinoamérica.',
       note: 'El negativo completo. Quince perforaciones por cuadro, con la película corriendo horizontalmente por el proyector, sobre una pantalla de piso a techo. No hay recorte porque no existe nada fuera de este cuadro: esto es lo que capturó la cámara.',
     },
     imaxlaser: {
-      cat: 'Como Nolan la filmó', name: 'IMAX con Láser (algunas salas)',
-      venue: 'IMAX digital, doble láser 4K',
-      headline: 'La única IMAX del Perú es de esta clase: pantalla de 752 pulgadas, frente a las ~1,700 de una IMAX real.',
-      note: 'El único camino digital que conserva la altura completa de 1.43:1. Menos resolución que la película, pero geométricamente íntegro: ves cada centímetro de la composición.',
+      cat: 'Encuadre completo, menos detalle', name: 'IMAX con Láser (algunas salas)',
+      venue: 'IMAX digital, dos proyectores láser 4K',
+      headline: 'No pierdes nada de encuadre — pero son 4K contra ~18K: apenas un 23% del detalle del negativo.',
+      note: 'El único camino digital que conserva la altura completa de 1.43:1: ves cada centímetro de la composición. Ojo con el "doble láser": los dos proyectores suman luz y contraste, no resolución — sigue siendo 4K, no 8K. Y la única IMAX del Perú es de esta clase, con pantalla de 752 pulgadas frente a las ~1,700 de una IMAX real.',
     },
     imaxdigital: {
       cat: 'Recortada para la sala', name: 'IMAX Digital',
@@ -105,16 +129,16 @@ const TEXT: Record<Lang, Record<string, FormatText>> = {
   // ── English ────────────────────────────────────────────────────────
   en: {
     imax70: {
-      cat: 'As Nolan shot it', name: 'IMAX 70mm (15-perf film)',
+      cat: 'Complete, as shot', name: 'IMAX 70mm (15-perf film)',
       venue: 'IMAX film projection',
       headline: "Only ~40 of the world's ~1,800 IMAX screens can run this. None of them are in Latin America.",
       note: 'The full negative. Fifteen perforations per frame, running horizontally through the projector, filling a floor-to-ceiling screen. Nothing is cropped because there is nothing outside this frame — this is what the camera captured.',
     },
     imaxlaser: {
-      cat: 'As Nolan shot it', name: 'IMAX with Laser (select)',
-      venue: 'Digital IMAX, dual 4K laser',
-      headline: "Full height, digitally. Peru's only IMAX is this class: a 752-inch screen, against ~1,700 for true IMAX.",
-      note: 'The only digital path that preserves full 1.43:1 height. Lower resolution than film, but geometrically complete — you see every inch of the composition.',
+      cat: 'Full frame, less detail', name: 'IMAX with Laser (select)',
+      venue: 'Digital IMAX, two 4K laser projectors',
+      headline: "You lose no framing at all — but this is 4K against ~18K: roughly 23% of the negative's detail.",
+      note: `The only digital path that preserves full 1.43:1 height — you see every inch of the composition. Note what "dual laser" does and does not mean: the two projectors stack light and contrast, not resolution. It is 4K, not 8K. Peru's only IMAX is this class, at 752 inches against ~1,700 for true IMAX.`,
     },
     imaxdigital: {
       cat: 'Cropped for the venue', name: 'IMAX Digital',
@@ -173,7 +197,7 @@ export const DEFAULT_FORMAT_ID = 'imax70';
 export interface Fact { stat: string; label: string; body: string }
 
 /** `es|en` marks a stat that is a word rather than a number, so needs translating. */
-const FACT_STATS = ['40 / 1,800', '270 kg', '~18K', '3×', 'Sin grilla|No grid', '1,700 in'];
+const FACT_STATS = ['40 / 1,800', '270 kg', '~18K', '3×', 'Sin grilla|No grid', '1,700 in', '4K ≠ 8K'];
 
 const FACT_TEXT: Record<Lang, Array<{ label: string; body: string }>> = {
   es: [
@@ -189,6 +213,8 @@ const FACT_TEXT: Record<Lang, Array<{ label: string; body: string }>> = {
       body: 'Un proyector digital es un chip cubierto de millones de espejos en filas y columnas perfectas; cada espejo es un pixel, así que el proyector le pone techo a toda la cadena por muy buena que fuera la cámara. La película no tiene grilla: la luz atraviesa millones de cristales en posiciones aleatorias y llega a la pantalla sin ningún procesamiento digital de por medio.' },
     { label: 'Tamaño de pantalla',
       body: 'Una pantalla IMAX real llega a unas 1,700 pulgadas, de piso a techo. Para comparar: la única IMAX del Perú es láser digital 4K, con pantalla de 752 pulgadas a 1.90:1 — espectacular, pero no es el formato en el que se filmó.' },
+    { label: 'Dos proyectores no son el doble de resolución',
+      body: 'En IMAX con doble láser, los dos proyectores se superponen para sumar luz, contraste y rango dinámico — no píxeles. La imagen sigue siendo 4K, no 8K. Por eso una sala así puede conservar el 100% del encuadre y aun así resolver cerca de una cuarta parte del detalle del negativo: son dos pérdidas distintas e independientes.' },
   ],
   en: [
     { label: 'Theaters that can show it',
@@ -203,6 +229,8 @@ const FACT_TEXT: Record<Lang, Array<{ label: string; body: string }>> = {
       body: 'A digital projector is a chip covered in millions of mirrors in perfect rows and columns; each mirror is one pixel, so the projector caps the entire chain no matter how good the camera was. Film has no grid — light passes through millions of randomly positioned crystals and lands on the screen with no digital processing in between.' },
     { label: 'Screen size',
       body: 'True IMAX screens reach around 1,700 inches, floor to ceiling. For contrast, the only IMAX in Peru is a 4K digital laser house: a 752-inch screen at 1.90:1 — spectacular, but not the format the film was made in.' },
+    { label: 'Two projectors is not twice the resolution',
+      body: 'In dual-laser IMAX the two projectors superimpose to stack light, contrast and dynamic range — not pixels. The image is still 4K, not 8K. That is why such a house can keep 100% of the framing and still resolve about a quarter of the negative’s detail: these are two separate, independent losses.' },
   ],
 };
 

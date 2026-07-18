@@ -1,6 +1,6 @@
 ---
 import Scene from './Scene.astro';
-import { getFormats, getFacts, SOURCE_RATIO, DEFAULT_FORMAT_ID, cropFractions } from './formats';
+import { getFormats, getFacts, SOURCE_RATIO, DEFAULT_FORMAT_ID, cropFractions, detailFraction } from './formats';
 import { t, type Lang } from '../../i18n/ui';
 
 interface Props { lang: Lang }
@@ -13,15 +13,19 @@ const L = t(lang);
 // Strings the client script needs at runtime, serialized alongside the data.
 const STR = {
   cutNothing: L.cutNothing,
+  detailOnly: L.detailOnly(0).replace('0', '{d}'),
   cutVertical: L.cutVertical,
   cutHorizontal: L.cutHorizontal,
   fullNegative: L.fullNegative,
-  lossTag: L.lossTag(0).replace('0', '{p}'),
+  lossTag: L.lossTag(0, 0).replace('0', '{p}').replace('0', '{d}'),
 };
 
+// Two INDEPENDENT losses. Framing is what the crop removes; detail is what the
+// projector can resolve. IMAX with Laser keeps 100% of the first and ~23% of
+// the second, so reporting only "kept" made it read as lossless.
 const rows = RELEASE_FORMATS.map((f) => {
   const c = cropFractions(f.ratio);
-  return { ...f, kept: c.width * c.height };
+  return { ...f, kept: c.width * c.height, detail: detailFraction(f.detailPx) };
 });
 
 const initial = rows.find((r) => r.id === DEFAULT_FORMAT_ID)!;
@@ -54,7 +58,7 @@ const pct = (n: number) => Math.round(n * 100);
           class="format-btn chip snap-start shrink-0 px-3 py-1.5 rounded-full border border-zinc-700
                  bg-zinc-900 text-[12px] whitespace-nowrap transition cursor-pointer">
           <span class="text-zinc-300">{r.ratioLabel}</span>
-          <span class="ml-1.5 font-mono text-[10px] text-zinc-500 tabular-nums">{pct(r.kept)}%</span>
+          <span class="ml-1.5 font-mono text-[10px] text-zinc-500 tabular-nums">{pct(r.kept)}/{pct(r.detail)}</span>
         </button>
       ))}
     </div>
@@ -79,12 +83,25 @@ const pct = (n: number) => Math.round(n * 100);
                     <span class="text-[12px] text-zinc-300 group-hover:text-zinc-100 truncate">{r.name}</span>
                     <span class="text-[10px] font-mono text-zinc-500 shrink-0">{r.ratioLabel}</span>
                   </span>
-                  <span class="mt-1 flex items-center gap-2">
-                    <span class="flex-1 h-1 rounded-full bg-zinc-800 overflow-hidden">
-                      <span class="bar block h-full rounded-full transition-all duration-500"
-                            style={`width:${pct(r.kept)}%`}></span>
+                  <span class="mt-1 block space-y-0.5">
+                    <span class="flex items-center gap-2">
+                      <span class="flex-1 h-1 rounded-full bg-zinc-800 overflow-hidden">
+                        <span class="bar block h-full rounded-full transition-all duration-500"
+                              style={`width:${pct(r.kept)}%`}></span>
+                      </span>
+                      <span class="text-[9px] font-mono text-zinc-500 w-14 text-right tabular-nums">
+                        {pct(r.kept)}% {L.framing.toLowerCase().slice(0, 4)}
+                      </span>
                     </span>
-                    <span class="text-[9px] font-mono text-zinc-500 w-8 text-right tabular-nums">{pct(r.kept)}%</span>
+                    <span class="flex items-center gap-2">
+                      <span class="flex-1 h-1 rounded-full bg-zinc-800 overflow-hidden">
+                        <span class="bar-detail block h-full rounded-full transition-all duration-500"
+                              style={`width:${pct(r.detail)}%`}></span>
+                      </span>
+                      <span class="text-[9px] font-mono text-zinc-500 w-14 text-right tabular-nums">
+                        {pct(r.detail)}% {L.detail.toLowerCase().slice(0, 4)}
+                      </span>
+                    </span>
                   </span>
                 </button>
               ))}
@@ -155,19 +172,26 @@ const pct = (n: number) => Math.round(n * 100);
                hover:bg-zinc-900 hover:text-cyan-300 transition cursor-pointer">&#8250;</button>
     </div>
 
-    <!-- Compact readout strip -->
+    <!-- Compact readout strip: the two losses side by side, never merged. -->
     <div class="shrink-0 grid grid-cols-4 gap-1.5 sm:gap-2">
       <div class="bg-zinc-900/60 border border-zinc-800 rounded px-2 py-1.5">
-        <p class="text-[9px] uppercase tracking-wider text-zinc-500 truncate">{L.kept}</p>
+        <p class="text-[9px] uppercase tracking-wider text-zinc-500 truncate">{L.framing}</p>
         <p id="statKept" class="text-[15px] sm:text-lg font-mono text-cyan-300 tabular-nums leading-tight">{pct(initial.kept)}%</p>
+        <span class="mt-1 block h-1 rounded-full bg-zinc-800 overflow-hidden">
+          <span id="barKept" class="bar block h-full rounded-full transition-all duration-500" style={`width:${pct(initial.kept)}%`}></span>
+        </span>
       </div>
       <div class="bg-zinc-900/60 border border-zinc-800 rounded px-2 py-1.5">
-        <p class="text-[9px] uppercase tracking-wider text-zinc-500 truncate">{L.lost}</p>
-        <p id="statLost" class="text-[15px] sm:text-lg font-mono text-amber-300 tabular-nums leading-tight">{pct(1 - initial.kept)}%</p>
+        <p class="text-[9px] uppercase tracking-wider text-zinc-500 truncate">{L.detail}</p>
+        <p id="statDetail" class="text-[15px] sm:text-lg font-mono text-amber-300 tabular-nums leading-tight">{pct(initial.detail)}%</p>
+        <span class="mt-1 block h-1 rounded-full bg-zinc-800 overflow-hidden">
+          <span id="barDetail" class="bar-detail block h-full rounded-full transition-all duration-500" style={`width:${pct(initial.detail)}%`}></span>
+        </span>
       </div>
       <div class="bg-zinc-900/60 border border-zinc-800 rounded px-2 py-1.5">
         <p class="text-[9px] uppercase tracking-wider text-zinc-500 truncate">{L.resolution}</p>
         <p id="statRes" class="text-[15px] sm:text-lg font-mono text-zinc-200 tabular-nums leading-tight">{initial.resolution}</p>
+        <p class="text-[9px] text-zinc-600 mt-1 truncate">{L.vsNegative} ~18K</p>
       </div>
       <div class="bg-zinc-900/60 border border-zinc-800 rounded px-2 py-1.5">
         <p class="text-[9px] uppercase tracking-wider text-zinc-500 truncate">{L.cutFrom}</p>
@@ -226,6 +250,7 @@ const pct = (n: number) => Math.round(n * 100);
     transition: all .5s ease-out;
   }
   .bar { background: linear-gradient(90deg, #22d3ee, #0891b2); }
+  .bar-detail { background: linear-gradient(90deg, #fbbf24, #b45309); }
 
   .format-btn[aria-checked='true'] {
     background: rgba(34,211,238,.08);
@@ -254,6 +279,9 @@ const pct = (n: number) => Math.round(n * 100);
   const all = (sel) => Array.from(document.querySelectorAll(sel));
 
   /** Kept fraction per axis. One is always 1 — you crop, never stretch. */
+  const SOURCE_DETAIL_PX = 18000;
+  const detailFraction = (px) => Math.min(1, px / SOURCE_DETAIL_PX);
+
   function cropFractions(target) {
     return target >= SOURCE_RATIO
       ? { width: 1, height: SOURCE_RATIO / target }
@@ -306,6 +334,8 @@ const pct = (n: number) => Math.round(n * 100);
     outline.style.width = `${keepW}px`;
     outline.style.height = `${keepH}px`;
 
+    const detail = detailFraction(current.detailPx);
+    const detailPct = Math.round(detail * 100);
     const lostPct = Math.round((1 - kept) * 100);
     $('fName').textContent = current.name;
     $('fVenue').textContent = current.venue;
@@ -313,13 +343,24 @@ const pct = (n: number) => Math.round(n * 100);
     $('fHeadline').textContent = current.headline;
     $('statRes').textContent = current.resolution;
     $('statKept').textContent = `${Math.round(kept * 100)}%`;
-    $('statLost').textContent = `${lostPct}%`;
+    $('statDetail').textContent = `${detailPct}%`;
+    $('barKept').style.width = `${Math.round(kept * 100)}%`;
+    $('barDetail').style.width = `${detailPct}%`;
     $('statAxis').textContent =
       kept === 1 ? STR.cutNothing : current.ratio >= SOURCE_RATIO ? STR.cutVertical : STR.cutHorizontal;
 
     const tag = $('lossTag');
-    tag.textContent = kept === 1 ? STR.fullNegative : STR.lossTag.replace('{p}', lostPct);
-    tag.style.color = kept === 1 ? '#22d3ee' : '#fcd34d';
+    // Three states, because "full framing" is not the same as "lossless".
+    if (kept === 1 && detail === 1) {
+      tag.textContent = STR.fullNegative;
+      tag.style.color = '#22d3ee';
+    } else if (kept === 1) {
+      tag.textContent = STR.detailOnly.replace('{d}', detailPct);
+      tag.style.color = '#fcd34d';
+    } else {
+      tag.textContent = STR.lossTag.replace('{p}', lostPct).replace('{d}', detailPct);
+      tag.style.color = '#fcd34d';
+    }
 
     all('.format-btn').forEach((b) =>
       b.setAttribute('aria-checked', String(b.dataset.format === current.id)));

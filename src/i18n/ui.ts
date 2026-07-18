@@ -20,10 +20,11 @@ export const UI = {
     builtWith: 'Hecho con Astro · sin framework de cliente',
 
     howWatching: 'Cómo lo estás viendo',
-    kept: 'Se ve',
-    lost: 'Se pierde',
+    framing: 'Encuadre',
+    detail: 'Detalle',
     resolution: 'Resolución',
     cutFrom: 'Recorte',
+    vsNegative: 'vs. negativo',
     cutNothing: 'Nada',
     cutVertical: 'Arriba y abajo',
     cutHorizontal: 'Izquierda y derecha',
@@ -35,8 +36,10 @@ export const UI = {
     nextFormat: 'Formato siguiente',
     formatGroup: 'Formato de exhibición',
 
-    fullNegative: 'Negativo completo — no se descarta nada',
-    lossTag: (p: number) => `${p}% de la imagen nunca llega a la pantalla`,
+    fullNegative: 'Negativo completo — nada recortado, todo el detalle',
+    // Full framing but reduced resolution: the case that used to read as "loses nothing".
+    detailOnly: (d: number) => `Encuadre completo, pero solo ~${d}% del detalle del negativo`,
+    lossTag: (p: number, d: number) => `${p}% de la imagen no llega a la pantalla · ~${d}% del detalle`,
 
     disclaimer:
       'El cuadro de este demo es una ilustración original compuesta para 1.43:1, no un fotograma de la película — el mástil, el banderín y la estela están puestos a propósito en las franjas que un recorte más ancho descarta. Además, una proyección Scope real es un reencuadre pensado por los cineastas, no el recorte central ciego que se simula aquí.',
@@ -51,10 +54,11 @@ export const UI = {
     builtWith: 'Built with Astro · no client framework',
 
     howWatching: "How you're watching it",
-    kept: 'Kept',
-    lost: 'Lost',
+    framing: 'Framing',
+    detail: 'Detail',
     resolution: 'Resolution',
     cutFrom: 'Cut from',
+    vsNegative: 'vs. negative',
     cutNothing: 'Nothing',
     cutVertical: 'Top & bottom',
     cutHorizontal: 'Left & right',
@@ -66,8 +70,9 @@ export const UI = {
     nextFormat: 'Next format',
     formatGroup: 'Release format',
 
-    fullNegative: 'Full negative — nothing discarded',
-    lossTag: (p: number) => `${p}% of the image never reaches the screen`,
+    fullNegative: 'Full negative — nothing cropped, all the detail',
+    detailOnly: (d: number) => `Full framing, but only ~${d}% of the negative's detail`,
+    lossTag: (p: number, d: number) => `${p}% of the image never reaches the screen · ~${d}% detail`,
 
     disclaimer:
       'The frame in this demo is an original illustration composed for 1.43:1, not a still from the film — the mast, pennant and wake sit deliberately in the bands a wider crop discards. A real Scope presentation is also a considered reframe by the filmmakers, not the blind centre-cut simulated here.',
