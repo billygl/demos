@@ -1,0 +1,51 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import { href } from '../lib/url';
+
+// The linktree is GENERATED from the collection — add a .md under
+// src/content/demos/ and the card appears here. Never hand-edit this list.
+const demos = (await getCollection('demos', ({ data }) => !data.draft))
+  .sort((a, b) => a.data.order - b.data.order);
+---
+
+<Base
+  title="Mini Demos"
+  description="Small single-page experiments. One idea each, no install."
+  backLink={false}
+>
+  <main class="flex-1 w-full max-w-xl mx-auto px-5 py-16 sm:py-24">
+
+    <header class="mb-10">
+      <div class="w-12 h-12 rounded-xl bg-cyan-400/10 border border-cyan-400/30 grid place-items-center text-cyan-400 text-xl mb-5">◆</div>
+      <h1 class="text-2xl font-semibold tracking-tight text-zinc-100">Mini Demos</h1>
+      <p class="text-sm text-zinc-500 mt-1.5 leading-relaxed">
+        Small single-page experiments. One idea each, no install — view source and take what's useful.
+      </p>
+    </header>
+
+    <nav class="space-y-3">
+      {demos.map((demo) => (
+        <a href={href(`/${demo.id}`)}
+           class="group block rounded-lg border border-zinc-800 bg-zinc-900/50 p-4
+                  hover:border-cyan-400/50 hover:bg-zinc-900 transition">
+          <div class="flex items-center gap-3">
+            <span class="shrink-0 w-10 h-10 rounded bg-zinc-950 border border-zinc-800 grid place-items-center
+                         text-[10px] font-mono text-cyan-400 group-hover:border-cyan-400/40 transition">
+              {demo.data.badge}
+            </span>
+            <div class="min-w-0 flex-1">
+              <h2 class="text-sm font-medium text-zinc-100 group-hover:text-cyan-300 transition">{demo.data.title}</h2>
+              <p class="text-[12px] text-zinc-500 truncate">{demo.data.blurb}</p>
+            </div>
+            <span class="text-zinc-600 group-hover:text-cyan-400 group-hover:translate-x-0.5 transition">&rarr;</span>
+          </div>
+        </a>
+      ))}
+    </nav>
+
+    <p class="mt-10 text-[11px] text-zinc-600">
+      {demos.length} demo{demos.length === 1 ? '' : 's'} · more coming.
+    </p>
+  </main>
+</Base>

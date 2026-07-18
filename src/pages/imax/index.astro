@@ -1,0 +1,18 @@
+---
+import { getEntry } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Explorer from '../../components/imax/Explorer.astro';
+
+// Page owns its layout; the collection entry owns its metadata. Reading it
+// here keeps the title in one place — the linktree and the page can't drift.
+const demo = await getEntry('demos', 'imax');
+if (!demo) throw new Error('Missing content entry: src/content/demos/imax.md');
+---
+
+<Base
+  title={demo.data.title}
+  description={demo.data.blurb}
+  badge={demo.data.badge}
+>
+  <Explorer />
+</Base>
