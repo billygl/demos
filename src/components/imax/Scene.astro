@@ -1,0 +1,94 @@
+---
+/**
+ * Synthetic 1.43:1 test frame — an original illustration, not a film still.
+ *
+ * It is composed deliberately so that the DRAMATICALLY IMPORTANT elements sit
+ * in the zones a 2.39:1 crop discards: the mast and sail apex up top, the
+ * wake and oar down below. A real still would demonstrate the crop less
+ * clearly, because we would not control what occupies the sacrificed bands.
+ *
+ * viewBox is 1430 × 1000 so 100 user units = 10% of frame height, which makes
+ * the crop bands easy to reason about:
+ *   2.39:1 keeps y 201–799   (60% of height)
+ *   1.90:1 keeps y 124–876   (75%)
+ *   1.78:1 keeps y  99–901   (80%)
+ */
+---
+
+<svg
+  id="scene"
+  viewBox="0 0 1430 1000"
+  preserveAspectRatio="xMidYMid slice"
+  class="block w-full h-full"
+  role="img"
+  aria-label="Illustrated seascape composed for a 1.43 to 1 frame: a ship with a tall mast, a low sun, and foam in the foreground."
+>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#0b1a2b" />
+      <stop offset="55%"  stop-color="#16394f" />
+      <stop offset="100%" stop-color="#2b6076" />
+    </linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#0d3547" />
+      <stop offset="100%" stop-color="#061a26" />
+    </linearGradient>
+    <radialGradient id="sunGlow">
+      <stop offset="0%"   stop-color="#fbbf24" stop-opacity=".55" />
+      <stop offset="100%" stop-color="#fbbf24" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="1430" height="645" fill="url(#sky)" />
+
+  <!-- ── TOP SACRIFICE ZONE (y < 201 is gone at 2.39:1) ──── -->
+  <circle cx="1080" cy="235" r="230" fill="url(#sunGlow)" />
+  <circle cx="1080" cy="235" r="62"  fill="#fbbf24" opacity=".85" />
+
+  <!-- Birds, deliberately high in frame -->
+  <g stroke="#cbd5e1" stroke-width="4" fill="none" opacity=".65" stroke-linecap="round">
+    <path d="M250 130 q22 -18 44 0 q22 -18 44 0" />
+    <path d="M390 90  q17 -14 34 0 q17 -14 34 0" />
+    <path d="M180 210 q14 -12 28 0 q14 -12 28 0" />
+  </g>
+
+  <!-- Sea -->
+  <rect y="645" width="1430" height="355" fill="url(#sea)" />
+  <line x1="0" y1="645" x2="1430" y2="645" stroke="#7dd3fc" stroke-width="2" opacity=".35" />
+
+  <!-- ── SHIP: mast reaches into the top sacrifice zone ───── -->
+  <g transform="translate(600 645)">
+    <!-- Mast: apex at y = -520 -> absolute y 125, cut by 2.39 AND by 1.90 -->
+    <line x1="0" y1="0" x2="0" y2="-520" stroke="#e2e8f0" stroke-width="7" stroke-linecap="round" />
+    <!-- Sail -->
+    <path d="M0 -505 L0 -150 L-190 -195 Z" fill="#e2e8f0" opacity=".9" />
+    <path d="M0 -505 L0 -150 L 165 -200 Z" fill="#cbd5e1" opacity=".65" />
+    <!-- Pennant at the very top -->
+    <path d="M0 -520 L70 -498 L0 -476 Z" fill="#22d3ee" />
+    <!-- Hull -->
+    <path d="M-165 0 L165 0 L110 62 L-110 62 Z" fill="#1e293b" stroke="#94a3b8" stroke-width="3" />
+    <!-- Oar dipping toward the lower sacrifice zone -->
+    <line x1="120" y1="30" x2="290" y2="215" stroke="#94a3b8" stroke-width="6" stroke-linecap="round" />
+  </g>
+
+  <!-- ── BOTTOM SACRIFICE ZONE (y > 799 is gone at 2.39:1) ── -->
+  <g fill="none" stroke="#7dd3fc" stroke-linecap="round">
+    <path d="M-20 830 q90 -26 180 0 q90 26 180 0 q90 -26 180 0" stroke-width="5" opacity=".45" />
+    <path d="M120 905 q100 -30 200 0 q100 30 200 0 q100 -30 200 0" stroke-width="6" opacity=".38" />
+    <path d="M620 860 q95 -28 190 0 q95 28 190 0 q95 -28 190 0" stroke-width="5" opacity=".42" />
+    <path d="M780 960 q105 -32 210 0 q105 32 210 0" stroke-width="7" opacity=".30" />
+  </g>
+
+  <!-- Foreground rocks, bottom corners -->
+  <path d="M0 1000 L0 880 q70 -40 150 20 q60 45 90 100 Z" fill="#0f172a" />
+  <path d="M1430 1000 L1430 900 q-90 -30 -160 40 q-40 35 -60 60 Z" fill="#0f172a" />
+
+  <!-- Faint framing marks at the extreme edges: proof of what gets lost -->
+  <g stroke="#22d3ee" stroke-width="3" opacity=".5" stroke-linecap="round">
+    <path d="M40 40 L40 100 M40 40 L100 40" />
+    <path d="M1390 40 L1390 100 M1390 40 L1330 40" />
+    <path d="M40 960 L40 900 M40 960 L100 960" />
+    <path d="M1390 960 L1390 900 M1390 960 L1330 960" />
+  </g>
+</svg>

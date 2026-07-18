@@ -1,0 +1,12 @@
+---
+import Base from '../../layouts/Base.astro';
+import DemoIndex from '../../components/DemoIndex.astro';
+import { t } from '../../i18n/ui';
+
+const lang = 'en' as const;
+const L = t(lang);
+---
+
+<Base lang={lang} title={L.siteTitle} description={L.siteBlurb} backLink={false}>
+  <DemoIndex lang={lang} />
+</Base>

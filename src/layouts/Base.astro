@@ -1,59 +1,90 @@
 ---
 import '../styles/global.css';
-import { href } from '../lib/url';
+import LangSwitcher from '../components/LangSwitcher.astro';
+import { href, switchLocale } from '../lib/url';
+import { t, LOCALES, type Lang } from '../i18n/ui';
 
 interface Props {
+  lang: Lang;
   title: string;
   description: string;
-  /** Show the "all demos" back-link. Off on the index itself. */
+  /** Show the header with the back-link. Off on the index itself. */
   backLink?: boolean;
   /** Small mono badge in the header, e.g. a demo's aspect ratio. */
   badge?: string;
+  /**
+   * Lock the page to exactly one viewport height, no page scroll, and drop the
+   * footer. For demos meant to be seen all at once.
+   */
+  fullscreen?: boolean;
 }
 
-const { title, description, backLink = true, badge } = Astro.props;
+const { lang, title, description, backLink = true, badge, fullscreen = false } = Astro.props;
+const L = t(lang);
 const canonical = new URL(Astro.url.pathname, Astro.site);
 ---
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang={lang}>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{title}</title>
   <meta name="description" content={description} />
   <link rel="canonical" href={canonical} />
+
+  {/* Marks the two locales as the same page rather than duplicate content. */}
+  {LOCALES.map((l) => (
+    <link rel="alternate" hreflang={l}
+          href={new URL(switchLocale(Astro.url.pathname, l), Astro.site)} />
+  ))}
+  <link rel="alternate" hreflang="x-default"
+        href={new URL(switchLocale(Astro.url.pathname, 'es'), Astro.site)} />
+
   <meta property="og:title" content={title} />
   <meta property="og:description" content={description} />
   <meta property="og:type" content="website" />
+  <meta property="og:locale" content={lang === 'es' ? 'es_PE' : 'en_US'} />
   <meta name="theme-color" content="#09090b" />
   <link rel="icon" href={href('/favicon.svg')} type="image/svg+xml" />
 </head>
 
-<body class="min-h-screen text-zinc-200 flex flex-col">
+<body
+  class:list={[
+    'text-zinc-200 flex flex-col',
+    // dvh, not vh — mobile browser chrome makes vh overflow by the toolbar height.
+    fullscreen ? 'h-[100dvh] overflow-hidden' : 'min-h-screen',
+  ]}
+>
   {backLink && (
-    <header class="border-b border-zinc-800/80 bg-zinc-950/70 backdrop-blur sticky top-0 z-20">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
+    <header class="shrink-0 border-b border-zinc-800/80 bg-zinc-950/70 backdrop-blur sticky top-0 z-20">
+      <div class="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex items-center gap-3">
         {badge && (
-          <div class="w-8 h-8 shrink-0 rounded bg-cyan-400/10 border border-cyan-400/40 grid place-items-center text-cyan-400 text-[10px] font-mono font-bold tracking-tighter">
-            {badge}
-          </div>
+          <div class="w-8 h-8 shrink-0 rounded bg-cyan-400/10 border border-cyan-400/40 grid place-items-center
+                      text-cyan-400 text-[10px] font-mono font-bold tracking-tighter">{badge}</div>
         )}
         <div class="min-w-0">
-          <h1 class="text-sm sm:text-base font-semibold tracking-tight text-zinc-100 truncate">{title}</h1>
+          <h1 class="text-[13px] sm:text-base font-semibold tracking-tight text-zinc-100 truncate">{title}</h1>
           <p class="text-[11px] text-zinc-500 truncate">{description}</p>
         </div>
-        <a href={href('/')} class="ml-auto shrink-0 text-[11px] text-zinc-500 hover:text-cyan-400 transition">
-          &larr; all demos
-        </a>
+
+        <div class="ml-auto shrink-0 flex items-center gap-2">
+          <LangSwitcher lang={lang} />
+          <a href={href('/', lang)}
+             class="hidden sm:inline text-[11px] text-zinc-500 hover:text-cyan-400 transition whitespace-nowrap">
+            &larr; {L.allDemos}
+          </a>
+        </div>
       </div>
     </header>
   )}
 
   <slot />
 
-  <footer class="mt-auto max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 text-[11px] text-zinc-600">
-    Built with Astro &middot; no client framework, no hydration cost
-  </footer>
+  {!fullscreen && (
+    <footer class="mt-auto max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 text-[11px] text-zinc-600">
+      {L.builtWith}
+    </footer>
+  )}
 </body>
 </html>

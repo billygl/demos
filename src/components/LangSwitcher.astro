@@ -1,0 +1,32 @@
+---
+import { switchLocale } from '../lib/url';
+import { LOCALES, LANG_NAMES, type Lang } from '../i18n/ui';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+
+// Real anchors, not a JS toggle: the pages are static, each locale has its own
+// URL, and switching has to be shareable and work without scripting.
+const links = LOCALES.map((l) => ({
+  code: l,
+  label: l.toUpperCase(),
+  title: LANG_NAMES[l],
+  url: switchLocale(Astro.url.pathname, l),
+  active: l === lang,
+}));
+---
+
+<div class="flex items-center rounded-md border border-zinc-800 bg-zinc-950 p-0.5" role="group" aria-label="Language">
+  {links.map((l) => (
+    <a
+      href={l.url}
+      hreflang={l.code}
+      title={l.title}
+      aria-current={l.active ? 'true' : undefined}
+      class:list={[
+        'px-2 py-1 rounded text-[11px] font-medium transition',
+        l.active ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-500 hover:text-cyan-400',
+      ]}
+    >{l.label}</a>
+  ))}
+</div>
