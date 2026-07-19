@@ -13,7 +13,7 @@ const L = t(lang);
 // Strings the client script needs at runtime, serialized alongside the data.
 const STR = {
   cutNothing: L.cutNothing,
-  loupeFilm: L.loupeFilm,
+  loupeFilm: L.loupeFilm('{px}'),
   loupeDigital: L.loupeDigital('{px}'),
   detailOnly: L.detailOnly(0).replace('0', '{d}'),
   cutVertical: L.cutVertical,
@@ -177,9 +177,10 @@ const pct = (n: number) => Math.round(n * 100);
           <svg id="loupeGrain" class="absolute inset-0 w-full h-full pointer-events-none mix-blend-overlay"
                aria-hidden="true">
             <filter id="grainFilter">
-              <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch" />
+              <feTurbulence id="grainNoise" type="fractalNoise" baseFrequency="1.5"
+                            numOctaves="4" stitchTiles="stitch" />
             </filter>
-            <rect width="100%" height="100%" filter="url(#grainFilter)" opacity="0.55" />
+            <rect id="grainRect" width="100%" height="100%" filter="url(#grainFilter)" opacity="0.35" />
           </svg>
 
           <figcaption class="absolute inset-x-0 bottom-0 px-1 py-0.5 bg-zinc-950/85 text-center">
@@ -423,7 +424,16 @@ const pct = (n: number) => Math.round(n * 100);
     if (current.isFilm) {
       grid.style.display = 'none';
       grain.style.display = 'block';
-      $('loupeLabel').textContent = STR.loupeFilm;
+      // Film has no grid, but it is not all equally fine. Grain frequency
+      // tracks resolution, so a ~4K 35mm print reads visibly coarser than an
+      // ~18K IMAX negative — otherwise every film format looked identical and
+      // the loupe silently ignored resolution for exactly these formats.
+      const freq = Math.max(0.16, 1.5 * (current.detailPx / SOURCE_DETAIL_PX));
+      $('grainNoise').setAttribute('baseFrequency', freq.toFixed(3));
+      // Coarser stock is also grainier to look at, not just softer.
+      $('grainRect').setAttribute('opacity',
+        (0.35 + 0.45 * (1 - current.detailPx / SOURCE_DETAIL_PX)).toFixed(2));
+      $('loupeLabel').textContent = STR.loupeFilm.replace('{px}', current.resolution);
     } else {
       grain.style.display = 'none';
       grid.style.display = 'block';

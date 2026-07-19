@@ -50,7 +50,7 @@ export const UI = {
       'Dos cosas distintas se pueden perder: el ENCUADRE (qué parte del cuadro se recorta) y el DETALLE (cuánta resolución alcanza a resolver el proyector). Una sala puede conservar todo el encuadre y aun así perder la mayor parte del detalle.',
 
     loupeTitle: 'Detalle ampliado',
-    loupeFilm: 'grano — sin grilla',
+    loupeFilm: (px: string) => `grano ${px} — sin grilla`,
     loupeDigital: (px: string) => `grilla de pixeles · ${px}`,
     loupeNote: 'Simulación: compara cuán fina es la muestra, no el color.',
 
@@ -98,7 +98,7 @@ export const UI = {
       'Two different things can be lost: FRAMING (how much of the frame is cropped away) and DETAIL (how much resolution the projector can actually resolve). A venue can keep all the framing and still lose most of the detail.',
 
     loupeTitle: 'Detail, magnified',
-    loupeFilm: 'grain — no grid',
+    loupeFilm: (px: string) => `${px} grain — no grid`,
     loupeDigital: (px: string) => `pixel grid · ${px}`,
     loupeNote: 'Simulated: compare how fine the sampling is, not the colour.',
 
