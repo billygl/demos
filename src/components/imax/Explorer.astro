@@ -228,6 +228,29 @@ const pct = (n: number) => Math.round(n * 100);
   </div>
 
   <div class="px-5 py-4 space-y-4 overflow-y-auto">
+
+    <!-- Define the term before using it: every number on the page is stated
+         relative to "the negative", which is not everyday vocabulary. -->
+    <section class="rounded-lg border border-cyan-400/25 bg-cyan-400/[.04] p-3.5">
+      <h4 class="text-[13px] font-semibold text-cyan-300">{L.negativeTermTitle}</h4>
+      {L.negativeTermBody.map((para) => (
+        <p class="text-[13px] leading-relaxed text-zinc-300 mt-2">{para}</p>
+      ))}
+
+      <!-- A miniature of the two shapes, so the word lands visually too. -->
+      <div class="mt-3 flex items-end gap-3">
+        <div class="text-center">
+          <div class="w-[54px] h-[38px] border-2 border-cyan-400 rounded-[2px] bg-cyan-400/10"></div>
+          <p class="text-[9px] font-mono text-cyan-300 mt-1">1.43:1</p>
+        </div>
+        <div class="text-center">
+          <div class="w-[54px] h-[23px] border-2 border-dashed border-amber-400/70 rounded-[2px]"></div>
+          <p class="text-[9px] font-mono text-amber-300/90 mt-1">2.39:1</p>
+        </div>
+        <p class="text-[11px] text-zinc-500 leading-snug flex-1">{L.negativeTermAside}</p>
+      </div>
+    </section>
+
     {FACTS.map((f) => (
       <div class="flex gap-3.5">
         <span class="shrink-0 w-20 text-right font-mono text-cyan-300 text-[15px] leading-tight">{f.stat}</span>

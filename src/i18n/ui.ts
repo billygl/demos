@@ -36,6 +36,19 @@ export const UI = {
     nextFormat: 'Formato siguiente',
     formatGroup: 'Formato de exhibición',
 
+    // "Negative" is film jargon. Everything on this page is measured against it,
+    // so it gets defined before any number that references it.
+    negativeTermTitle: 'Primero: ¿qué es "el negativo"?',
+    // Paragraphs as an array rather than one string with newlines: the template
+    // renders one <p> each, and there is no escaping to get wrong.
+    negativeTermBody: [
+      'El negativo es la tira de película que se expone dentro de la cámara: la imagen original, física, tal como la capturó el lente. No es un archivo ni una copia — es el material del que sale todo lo demás.',
+      'La Odisea se filmó completa en cámaras IMAX de 70mm, así que su negativo tiene forma 1.43:1: más alto, en proporción, que la pantalla de un cine normal. Ese cuadro es el techo — ninguna sala puede mostrarte más de lo que ahí quedó grabado, solo menos.',
+      'Por eso todo en esta página se mide "contra el negativo": es el 100% del que se parte.',
+    ],
+    negativeTermAside:
+      'Dos cosas distintas se pueden perder: el ENCUADRE (qué parte del cuadro se recorta) y el DETALLE (cuánta resolución alcanza a resolver el proyector). Una sala puede conservar todo el encuadre y aun así perder la mayor parte del detalle.',
+
     fullNegative: 'Negativo completo — nada recortado, todo el detalle',
     // Full framing but reduced resolution: the case that used to read as "loses nothing".
     detailOnly: (d: number) => `Encuadre completo, pero solo ~${d}% del detalle del negativo`,
@@ -69,6 +82,15 @@ export const UI = {
     prevFormat: 'Previous format',
     nextFormat: 'Next format',
     formatGroup: 'Release format',
+
+    negativeTermTitle: 'First: what is "the negative"?',
+    negativeTermBody: [
+      'The negative is the strip of film exposed inside the camera: the original, physical image as the lens captured it. Not a file, not a copy — the material everything else is made from.',
+      'The Odyssey was shot entirely on 70mm IMAX cameras, so its negative is 1.43:1 — taller, in proportion, than an ordinary cinema screen. That frame is the ceiling: no venue can show you more than what was recorded there, only less.',
+      'So everything on this page is measured "against the negative": it is the 100% we start from.',
+    ],
+    negativeTermAside:
+      'Two different things can be lost: FRAMING (how much of the frame is cropped away) and DETAIL (how much resolution the projector can actually resolve). A venue can keep all the framing and still lose most of the detail.',
 
     fullNegative: 'Full negative — nothing cropped, all the detail',
     detailOnly: (d: number) => `Full framing, but only ~${d}% of the negative's detail`,
