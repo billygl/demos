@@ -57,6 +57,8 @@ export const UI = {
     loupeCompare: 'Mira la nitidez a la derecha',
     loupeSame: 'Sin pérdida: los dos lados iguales',
     loupeHint: 'Arrastra sobre la imagen para mover la lupa',
+    loupeCropped: 'recortado',
+    loupeCroppedNote: 'Esta zona no llega a la pantalla en este formato',
 
     fullNegative: 'Negativo completo — nada recortado, todo el detalle',
     // Full framing but reduced resolution: the case that used to read as "loses nothing".
@@ -107,6 +109,8 @@ export const UI = {
     loupeCompare: 'Watch the sharpness on the right',
     loupeSame: 'No loss — both sides identical',
     loupeHint: 'Drag on the image to move the loupe',
+    loupeCropped: 'cropped away',
+    loupeCroppedNote: 'This area never reaches the screen in this format',
 
     fullNegative: 'Full negative — nothing cropped, all the detail',
     detailOnly: (d: number) => `Full framing, but only ~${d}% of the negative's detail`,

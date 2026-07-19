@@ -17,6 +17,8 @@ const STR = {
   loupeSame: L.loupeSame,
   loupeCompare: L.loupeCompare,
   loupeHint: L.loupeHint,
+  loupeCropped: L.loupeCropped,
+  loupeCroppedNote: L.loupeCroppedNote,
   loupeDigital: L.loupeDigital('{px}'),
   detailOnly: L.detailOnly(0).replace('0', '{d}'),
   cutVertical: L.cutVertical,
@@ -332,6 +334,13 @@ const pct = (n: number) => Math.round(n * 100);
   .bar { background: linear-gradient(90deg, #22d3ee, #0891b2); }
   .bar-detail { background: linear-gradient(90deg, #fbbf24, #b45309); }
 
+  /* Aimed at a region this format discards: the right half is struck out
+     rather than quietly showing image that never reaches the screen. */
+  #loupe.is-cropped #loupeInner,
+  #loupe.is-cropped #pixCanvas { opacity: .12; }
+  #loupe.is-cropped #loupeGrain { display: none !important; }
+  #loupe.is-cropped #loupeLabel { color: #fca5a5; }
+
   .format-btn[aria-checked='true'] {
     background: rgba(34,211,238,.08);
     border-color: rgba(34,211,238,.45);
@@ -359,8 +368,12 @@ const pct = (n: number) => Math.round(n * 100);
   // Where the loupe is looking, as a fraction of the frame. Mutable: the user
   // can drag the loupe to inspect anywhere, since one fixed patch cannot be
   // interesting for every format.
-  let FOCUS_X = 0.44;
-  let FOCUS_Y = 0.56;   // ship, horizon and sail base — the busiest region
+  // Default aim: the sun. A hard circular edge shows resampling as stair-steps,
+  // and the surrounding glow shows it as banding — two tells in one patch. The
+  // sail was a poor default: a flat gradient looks the same at any resolution,
+  // so the two halves appeared identical for every format.
+  let FOCUS_X = 0.755;
+  let FOCUS_Y = 0.235;
   const all = (sel) => Array.from(document.querySelectorAll(sel));
 
   /** Kept fraction per axis. One is always 1 — you crop, never stretch. */
@@ -495,7 +508,7 @@ const pct = (n: number) => Math.round(n * 100);
     const loupe = $('loupe');
     const halfW = loupe.clientWidth / 2;
     const loupeH = loupe.querySelector('canvas').parentElement.clientHeight;
-    const ZOOM = 2.4;
+    const ZOOM = 2.0;
 
     const placeHalf = (el) => {
       el.style.width = `${negW * ZOOM}px`;
@@ -513,6 +526,13 @@ const pct = (n: number) => Math.round(n * 100);
     const grain = $('loupeGrain');
     const canvas = $('pixCanvas');
     const sel = $('loupeInner');
+
+    // The loupe samples the negative, so it can be aimed at a region this
+    // format crops away entirely — showing it as "what you see" would be a lie.
+    const kx = (1 - c.width) / 2, ky = (1 - c.height) / 2;
+    const cropped =
+      FOCUS_X < kx || FOCUS_X > 1 - kx || FOCUS_Y < ky || FOCUS_Y > 1 - ky;
+    $('loupe').classList.toggle('is-cropped', cropped);
 
     if (current.isFilm) {
       // Film: no sampling grid exists, so detail is lost as softness and grain.
@@ -550,8 +570,13 @@ const pct = (n: number) => Math.round(n * 100);
     mark.style.left = `${offX + FOCUS_X * negW * c.width}px`;
     mark.style.top = `${offY + FOCUS_Y * negH * c.height}px`;
 
-    $('loupeCaption').textContent = current.detailPx >= SOURCE_DETAIL_PX
-      ? STR.loupeSame : STR.loupeCompare;
+    if (cropped) {
+      $('loupeLabel').textContent = STR.loupeCropped;
+      $('loupeCaption').textContent = STR.loupeCroppedNote;
+    } else {
+      $('loupeCaption').textContent = current.detailPx >= SOURCE_DETAIL_PX
+        ? STR.loupeSame : STR.loupeCompare;
+    }
 
     const tag = $('lossTag');
     // Three states, because "full framing" is not the same as "lossless".
