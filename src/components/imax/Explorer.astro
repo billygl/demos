@@ -513,8 +513,11 @@ const pct = (n: number) => Math.round(n * 100);
     const placeHalf = (el) => {
       el.style.width = `${negW * ZOOM}px`;
       el.style.height = `${negH * ZOOM}px`;
+      // halfW for x, loupeH for y. Using halfW for both aimed the reference
+      // half at a different point than the canvas half, so the two sides were
+      // not comparing the same patch at all.
       el.style.transform =
-        `translate(${halfW / 2 - FOCUS_X * negW * ZOOM}px, ${halfW / 2 - FOCUS_Y * negH * ZOOM}px)`;
+        `translate(${halfW / 2 - FOCUS_X * negW * ZOOM}px, ${loupeH / 2 - FOCUS_Y * negH * ZOOM}px)`;
     };
     placeHalf($('refInner'));
     placeHalf($('loupeInner'));
@@ -566,9 +569,12 @@ const pct = (n: number) => Math.round(n * 100);
 
     // When the negative IS the selection, say so rather than showing two
     // identical halves and letting it look like a rendering bug.
+    // FOCUS is a fraction of the whole negative, and the marker lives inside
+    // the negative box — so no crop scaling and no offset belong here.
     const mark = $('focusMark');
-    mark.style.left = `${offX + FOCUS_X * negW * c.width}px`;
-    mark.style.top = `${offY + FOCUS_Y * negH * c.height}px`;
+    mark.style.left = `${FOCUS_X * negW}px`;
+    mark.style.top = `${FOCUS_Y * negH}px`;
+    mark.style.borderColor = cropped ? 'rgba(252,165,165,.95)' : 'rgba(255,255,255,.7)';
 
     if (cropped) {
       $('loupeLabel').textContent = STR.loupeCropped;
