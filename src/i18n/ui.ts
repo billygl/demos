@@ -52,8 +52,10 @@ export const UI = {
     loupeFilm: (px: string) => `grano ${px} — sin grilla`,
     loupeDigital: (px: string) => `grilla de pixeles · ${px}`,
     loupeRef: 'negativo',
-    loupeSame: 'Los dos lados son iguales',
-    loupeCompare: 'Zoom al mismo punto en los dos lados',
+    // Says what to look FOR, not how the view is built. The previous caption
+    // described the mechanism, which answered a question nobody was asking.
+    loupeCompare: 'Mira cuánta nitidez se pierde a la derecha',
+    loupeSame: 'Aquí no se pierde nitidez: los dos lados son iguales',
 
     fullNegative: 'Negativo completo — nada recortado, todo el detalle',
     // Full framing but reduced resolution: the case that used to read as "loses nothing".
@@ -101,8 +103,8 @@ export const UI = {
     loupeFilm: (px: string) => `${px} grain — no grid`,
     loupeDigital: (px: string) => `pixel grid · ${px}`,
     loupeRef: 'negative',
-    loupeSame: 'Both sides are the same',
-    loupeCompare: 'Zoomed to the same point on both sides',
+    loupeCompare: 'Look how much sharpness is lost on the right',
+    loupeSame: 'Nothing lost here — both sides are the same',
 
     fullNegative: 'Full negative — nothing cropped, all the detail',
     detailOnly: (d: number) => `Full framing, but only ~${d}% of the negative's detail`,
