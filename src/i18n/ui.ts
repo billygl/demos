@@ -53,6 +53,8 @@ export const UI = {
     loupeFilm: (px: string) => `grano ${px} — sin grilla`,
     loupeDigital: (px: string) => `grilla de pixeles · ${px}`,
     loupeNote: 'Simulación: compara cuán fina es la muestra, no el color.',
+    chartTitle: 'Líneas que alcanza a separar',
+    chartCount: (n: number, total: number) => `${n} de ${total}`,
 
     fullNegative: 'Negativo completo — nada recortado, todo el detalle',
     // Full framing but reduced resolution: the case that used to read as "loses nothing".
@@ -101,6 +103,8 @@ export const UI = {
     loupeFilm: (px: string) => `${px} grain — no grid`,
     loupeDigital: (px: string) => `pixel grid · ${px}`,
     loupeNote: 'Simulated: compare how fine the sampling is, not the colour.',
+    chartTitle: 'Line pairs it can still separate',
+    chartCount: (n: number, total: number) => `${n} of ${total}`,
 
     fullNegative: 'Full negative — nothing cropped, all the detail',
     detailOnly: (d: number) => `Full framing, but only ~${d}% of the negative's detail`,

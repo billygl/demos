@@ -1,5 +1,6 @@
 ---
 import Scene from './Scene.astro';
+import ResChart, { PITCHES } from './ResChart.astro';
 import { getFormats, getFacts, SOURCE_RATIO, DEFAULT_FORMAT_ID, cropFractions, detailFraction } from './formats';
 import { t, type Lang } from '../../i18n/ui';
 
@@ -15,6 +16,8 @@ const STR = {
   cutNothing: L.cutNothing,
   loupeFilm: L.loupeFilm('{px}'),
   loupeDigital: L.loupeDigital('{px}'),
+  chartCount: L.chartCount(0, PITCHES.length).replace('0', '{n}'),
+  PITCHES,
   detailOnly: L.detailOnly(0).replace('0', '{d}'),
   cutVertical: L.cutVertical,
   cutHorizontal: L.cutHorizontal,
@@ -166,26 +169,35 @@ const pct = (n: number) => Math.round(n * 100);
           the point a "4K" label cannot make on its own.
         -->
         <figure id="loupe"
-          class="absolute right-2 top-2 w-[86px] h-[86px] sm:w-[124px] sm:h-[124px]
+          class="absolute right-2 top-2 w-[104px] sm:w-[148px]
                  rounded-md overflow-hidden border border-zinc-600 bg-zinc-950 shadow-lg">
-          <div id="loupeInner" class="absolute top-0 left-0 origin-top-left"><Scene idPrefix="loupe" /></div>
 
-          {/* Digital: a hard sampling grid. */}
-          <div id="loupeGrid" class="absolute inset-0 pointer-events-none"></div>
+          <!-- Magnified patch: shows the STRUCTURE of the sampling. -->
+          <div class="relative h-[62px] sm:h-[86px] overflow-hidden">
+            <div id="loupeInner" class="absolute top-0 left-0 origin-top-left"><Scene idPrefix="loupe" /></div>
+            <div id="loupeGrid" class="absolute inset-0 pointer-events-none"></div>
+            <svg id="loupeGrain" class="absolute inset-0 w-full h-full pointer-events-none mix-blend-overlay"
+                 aria-hidden="true">
+              <filter id="grainFilter">
+                <feTurbulence id="grainNoise" type="fractalNoise" baseFrequency="1.5"
+                              numOctaves="4" stitchTiles="stitch" />
+              </filter>
+              <rect id="grainRect" width="100%" height="100%" filter="url(#grainFilter)" opacity="0.35" />
+            </svg>
+            <span id="loupeLabel"
+                  class="absolute inset-x-0 bottom-0 px-1 bg-zinc-950/85 text-center
+                         text-[8px] sm:text-[9px] font-mono text-zinc-300 truncate"></span>
+          </div>
 
-          {/* Film: real random noise, so "no grid" is visible rather than asserted. */}
-          <svg id="loupeGrain" class="absolute inset-0 w-full h-full pointer-events-none mix-blend-overlay"
-               aria-hidden="true">
-            <filter id="grainFilter">
-              <feTurbulence id="grainNoise" type="fractalNoise" baseFrequency="1.5"
-                            numOctaves="4" stitchTiles="stitch" />
-            </filter>
-            <rect id="grainRect" width="100%" height="100%" filter="url(#grainFilter)" opacity="0.35" />
-          </svg>
-
-          <figcaption class="absolute inset-x-0 bottom-0 px-1 py-0.5 bg-zinc-950/85 text-center">
-            <span id="loupeLabel" class="block text-[8px] sm:text-[9px] font-mono text-zinc-300 truncate"></span>
-          </figcaption>
+          <!-- Eye chart: shows the FINENESS. Counting beats judging texture. -->
+          <div class="border-t border-zinc-700 px-1.5 pt-1 pb-1 bg-zinc-950">
+            <div class="h-[34px] sm:h-[46px]"><ResChart /></div>
+            <figcaption class="flex items-baseline justify-between gap-1 mt-0.5">
+              <span class="text-[7px] sm:text-[8px] text-zinc-500 leading-none truncate">{L.chartTitle}</span>
+              <span id="chartCount"
+                    class="text-[9px] sm:text-[10px] font-mono text-cyan-300 tabular-nums leading-none"></span>
+            </figcaption>
+          </div>
         </figure>
 
         <p id="lossTag"
@@ -443,6 +455,21 @@ const pct = (n: number) => Math.round(n * 100);
       grid.style.backgroundSize = `${cell}px ${cell}px`;
       $('loupeLabel').textContent = STR.loupeDigital.replace('{px}', current.resolution);
     }
+
+    // Eye chart: a row survives only if its pitch clears this format's limit.
+    // "How many rows can you still count?" is a question people answer
+    // instantly; "is this grain finer than the last one?" is not.
+    const limit = 1.6 * (SOURCE_DETAIL_PX / current.detailPx);
+    let legible = 0;
+    STR.PITCHES.forEach((pitch, i) => {
+      const row = loupe.querySelector(`[data-row="${i}"]`);
+      if (!row) return;
+      const resolved = pitch >= limit;
+      if (resolved) legible++;
+      row.querySelector('.row-lines').style.display = resolved ? '' : 'none';
+      row.querySelector('.row-merged').style.display = resolved ? 'none' : '';
+    });
+    $('chartCount').textContent = STR.chartCount.replace('{n}', legible);
 
     const tag = $('lossTag');
     // Three states, because "full framing" is not the same as "lossless".
