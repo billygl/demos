@@ -12,11 +12,18 @@
  *   2.39:1 keeps y 201–799   (60% of height)
  *   1.90:1 keeps y 124–876   (75%)
  *   1.78:1 keeps y  99–901   (80%)
+ *
+ * The component is rendered more than once per page (main stage + loupe), so
+ * every internal id is namespaced. Duplicate SVG ids are invalid and make the
+ * second instance silently reference the first instance's gradients.
  */
+interface Props { idPrefix?: string }
+const { idPrefix = 'scene' } = Astro.props;
+const uid = (name: string) => `${idPrefix}-${name}`;
 ---
 
 <svg
-  id="scene"
+  id={uid('root')}
   viewBox="0 0 1430 1000"
   preserveAspectRatio="xMidYMid slice"
   class="block w-full h-full"
@@ -24,26 +31,26 @@
   aria-label="Illustrated seascape composed for a 1.43 to 1 frame: a ship with a tall mast, a low sun, and foam in the foreground."
 >
   <defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id={uid('sky')} x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%"   stop-color="#0b1a2b" />
       <stop offset="55%"  stop-color="#16394f" />
       <stop offset="100%" stop-color="#2b6076" />
     </linearGradient>
-    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id={uid('sea')} x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%"   stop-color="#0d3547" />
       <stop offset="100%" stop-color="#061a26" />
     </linearGradient>
-    <radialGradient id="sunGlow">
+    <radialGradient id={uid('sunGlow')}>
       <stop offset="0%"   stop-color="#fbbf24" stop-opacity=".55" />
       <stop offset="100%" stop-color="#fbbf24" stop-opacity="0" />
     </radialGradient>
   </defs>
 
   <!-- Sky -->
-  <rect width="1430" height="645" fill="url(#sky)" />
+  <rect width="1430" height="645" fill={`url(#${uid('sky')})`} />
 
   <!-- ── TOP SACRIFICE ZONE (y < 201 is gone at 2.39:1) ──── -->
-  <circle cx="1080" cy="235" r="230" fill="url(#sunGlow)" />
+  <circle cx="1080" cy="235" r="230" fill={`url(#${uid('sunGlow')})`} />
   <circle cx="1080" cy="235" r="62"  fill="#fbbf24" opacity=".85" />
 
   <!-- Birds, deliberately high in frame -->
@@ -54,7 +61,7 @@
   </g>
 
   <!-- Sea -->
-  <rect y="645" width="1430" height="355" fill="url(#sea)" />
+  <rect y="645" width="1430" height="355" fill={`url(#${uid('sea')})`} />
   <line x1="0" y1="645" x2="1430" y2="645" stroke="#7dd3fc" stroke-width="2" opacity=".35" />
 
   <!-- ── SHIP: mast reaches into the top sacrifice zone ───── -->

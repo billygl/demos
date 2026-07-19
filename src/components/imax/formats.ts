@@ -40,19 +40,26 @@ interface Geometry {
    * not pixel counts — film has no grid.
    */
   detailPx: number;
+  /**
+   * Photochemical, i.e. no pixel grid at all. Drives the loupe: film formats
+   * are drawn with random grain, digital ones with a sampling grid. A 35mm
+   * print resolves less than a 4K projector yet still has no grid — which is
+   * the distinction the resolution number alone cannot express.
+   */
+  isFilm: boolean;
 }
 
 const GEOMETRY: Geometry[] = [
-  { id: 'imax70',      ratio: 1.43,   ratioLabel: '1.43:1', resolution: '~18K',  detailPx: 18000 },
+  { id: 'imax70',      ratio: 1.43,   ratioLabel: '1.43:1', resolution: '~18K',  detailPx: 18000, isFilm: true },
   // Dual laser stacks two projectors for light output, NOT for resolution:
   // it is 4K, not 8K. Labelling it "4K ×2" invited exactly that misreading.
-  { id: 'imaxlaser',   ratio: 1.43,   ratioLabel: '1.43:1', resolution: '4K',    detailPx: 4096 },
-  { id: 'imaxdigital', ratio: 1.90,   ratioLabel: '1.90:1', resolution: '2K–4K', detailPx: 2048 },
-  { id: 'dolbyflat',   ratio: 1.85,   ratioLabel: '1.85:1', resolution: '4K',    detailPx: 4096 },
-  { id: 'std70',       ratio: 2.20,   ratioLabel: '2.20:1', resolution: '~8K',   detailPx: 8000 },
-  { id: 'scope',       ratio: 2.39,   ratioLabel: '2.39:1', resolution: '~4K',   detailPx: 4000 },
-  { id: 'uhd',         ratio: 16 / 9, ratioLabel: '1.78:1', resolution: '4K',    detailPx: 3840 },
-  { id: 'vertical',    ratio: 9 / 16, ratioLabel: '0.56:1', resolution: '1080p', detailPx: 1080 },
+  { id: 'imaxlaser',   ratio: 1.43,   ratioLabel: '1.43:1', resolution: '4K',    detailPx: 4096, isFilm: false },
+  { id: 'imaxdigital', ratio: 1.90,   ratioLabel: '1.90:1', resolution: '2K–4K', detailPx: 2048, isFilm: false },
+  { id: 'dolbyflat',   ratio: 1.85,   ratioLabel: '1.85:1', resolution: '4K',    detailPx: 4096, isFilm: false },
+  { id: 'std70',       ratio: 2.20,   ratioLabel: '2.20:1', resolution: '~8K',   detailPx: 8000, isFilm: true },
+  { id: 'scope',       ratio: 2.39,   ratioLabel: '2.39:1', resolution: '~4K',   detailPx: 4000, isFilm: true },
+  { id: 'uhd',         ratio: 16 / 9, ratioLabel: '1.78:1', resolution: '4K',    detailPx: 3840, isFilm: false },
+  { id: 'vertical',    ratio: 9 / 16, ratioLabel: '0.56:1', resolution: '1080p', detailPx: 1080, isFilm: false },
 ];
 
 /** Share of the negative's linear detail this presentation resolves. */

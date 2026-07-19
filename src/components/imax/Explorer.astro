@@ -13,6 +13,8 @@ const L = t(lang);
 // Strings the client script needs at runtime, serialized alongside the data.
 const STR = {
   cutNothing: L.cutNothing,
+  loupeFilm: L.loupeFilm,
+  loupeDigital: L.loupeDigital('{px}'),
   detailOnly: L.detailOnly(0).replace('0', '{d}'),
   cutVertical: L.cutVertical,
   cutHorizontal: L.cutHorizontal,
@@ -156,6 +158,34 @@ const pct = (n: number) => Math.round(n * 100);
                class="absolute border-2 border-amber-400 pointer-events-none transition-all duration-500 ease-out
                       shadow-[0_0_30px_-6px_rgba(251,191,36,.6)]"></div>
         </div>
+
+        <!--
+          Detail loupe: a magnified patch of the same scene, overlaid with the
+          sampling structure of the selected format. Film gets random grain,
+          digital gets a grid whose cell size scales with resolution — which is
+          the point a "4K" label cannot make on its own.
+        -->
+        <figure id="loupe"
+          class="absolute right-2 top-2 w-[86px] h-[86px] sm:w-[124px] sm:h-[124px]
+                 rounded-md overflow-hidden border border-zinc-600 bg-zinc-950 shadow-lg">
+          <div id="loupeInner" class="absolute top-0 left-0 origin-top-left"><Scene idPrefix="loupe" /></div>
+
+          {/* Digital: a hard sampling grid. */}
+          <div id="loupeGrid" class="absolute inset-0 pointer-events-none"></div>
+
+          {/* Film: real random noise, so "no grid" is visible rather than asserted. */}
+          <svg id="loupeGrain" class="absolute inset-0 w-full h-full pointer-events-none mix-blend-overlay"
+               aria-hidden="true">
+            <filter id="grainFilter">
+              <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch" />
+            </filter>
+            <rect width="100%" height="100%" filter="url(#grainFilter)" opacity="0.55" />
+          </svg>
+
+          <figcaption class="absolute inset-x-0 bottom-0 px-1 py-0.5 bg-zinc-950/85 text-center">
+            <span id="loupeLabel" class="block text-[8px] sm:text-[9px] font-mono text-zinc-300 truncate"></span>
+          </figcaption>
+        </figure>
 
         <p id="lossTag"
            class="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[10px] font-mono px-2 py-1 rounded
@@ -371,6 +401,38 @@ const pct = (n: number) => Math.round(n * 100);
     $('barDetail').style.width = `${detailPct}%`;
     $('statAxis').textContent =
       kept === 1 ? STR.cutNothing : current.ratio >= SOURCE_RATIO ? STR.cutVertical : STR.cutHorizontal;
+
+    // ── Loupe ────────────────────────────────────────────────────────
+    // Magnify the same patch of the scene at a fixed zoom, then overlay the
+    // format's sampling structure. Cell size is exaggerated: real pixels at
+    // this scale would be invisible, and the point is the RELATIVE coarseness.
+    const loupe = $('loupe');
+    const lw = loupe.clientWidth;
+    const ZOOM = 7;
+    const inner = $('loupeInner');
+    inner.style.width = `${negW * ZOOM}px`;
+    inner.style.height = `${negH * ZOOM}px`;
+    // Centre on the ship and sail, which carry the most fine structure.
+    inner.style.transform =
+      `translate(${lw / 2 - 0.42 * negW * ZOOM}px, ${lw / 2 - 0.46 * negH * ZOOM}px)`;
+
+    const cell = Math.max(1.5, (SOURCE_DETAIL_PX / current.detailPx) * 1.7);
+    const grid = $('loupeGrid');
+    const grain = $('loupeGrain');
+
+    if (current.isFilm) {
+      grid.style.display = 'none';
+      grain.style.display = 'block';
+      $('loupeLabel').textContent = STR.loupeFilm;
+    } else {
+      grain.style.display = 'none';
+      grid.style.display = 'block';
+      grid.style.backgroundImage =
+        'linear-gradient(to right, rgba(0,0,0,.55) 1px, transparent 1px),' +
+        'linear-gradient(to bottom, rgba(0,0,0,.55) 1px, transparent 1px)';
+      grid.style.backgroundSize = `${cell}px ${cell}px`;
+      $('loupeLabel').textContent = STR.loupeDigital.replace('{px}', current.resolution);
+    }
 
     const tag = $('lossTag');
     // Three states, because "full framing" is not the same as "lossless".

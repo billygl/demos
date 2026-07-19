@@ -49,6 +49,11 @@ export const UI = {
     negativeTermAside:
       'Dos cosas distintas se pueden perder: el ENCUADRE (qué parte del cuadro se recorta) y el DETALLE (cuánta resolución alcanza a resolver el proyector). Una sala puede conservar todo el encuadre y aun así perder la mayor parte del detalle.',
 
+    loupeTitle: 'Detalle ampliado',
+    loupeFilm: 'grano — sin grilla',
+    loupeDigital: (px: string) => `grilla de pixeles · ${px}`,
+    loupeNote: 'Simulación: compara cuán fina es la muestra, no el color.',
+
     fullNegative: 'Negativo completo — nada recortado, todo el detalle',
     // Full framing but reduced resolution: the case that used to read as "loses nothing".
     detailOnly: (d: number) => `Encuadre completo, pero solo ~${d}% del detalle del negativo`,
@@ -91,6 +96,11 @@ export const UI = {
     ],
     negativeTermAside:
       'Two different things can be lost: FRAMING (how much of the frame is cropped away) and DETAIL (how much resolution the projector can actually resolve). A venue can keep all the framing and still lose most of the detail.',
+
+    loupeTitle: 'Detail, magnified',
+    loupeFilm: 'grain — no grid',
+    loupeDigital: (px: string) => `pixel grid · ${px}`,
+    loupeNote: 'Simulated: compare how fine the sampling is, not the colour.',
 
     fullNegative: 'Full negative — nothing cropped, all the detail',
     detailOnly: (d: number) => `Full framing, but only ~${d}% of the negative's detail`,
