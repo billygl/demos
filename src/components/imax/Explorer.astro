@@ -188,7 +188,7 @@ const pct = (n: number) => Math.round(n * 100);
               <div id="loupeInner" class="absolute top-0 left-0 origin-top-left">
                 <Scene idPrefix="loupeSel" />
               </div>
-              <div id="loupeGrid" class="absolute inset-0 pointer-events-none"></div>
+              <canvas id="pixCanvas" class="absolute inset-0 w-full h-full hidden"></canvas>
               <svg id="loupeGrain" class="absolute inset-0 w-full h-full pointer-events-none mix-blend-overlay"
                    aria-hidden="true">
                 <filter id="grainFilter">
@@ -350,6 +350,8 @@ const pct = (n: number) => Math.round(n * 100);
 
 <script is:inline define:vars={{ RELEASE_FORMATS, SOURCE_RATIO, DEFAULT_FORMAT_ID, STR }}>
   const $ = (id) => document.getElementById(id);
+  const FOCUS_X = 0.42;   // the ship and sail carry the most fine structure
+  const FOCUS_Y = 0.46;
   const all = (sel) => Array.from(document.querySelectorAll(sel));
 
   /** Kept fraction per axis. One is always 1 — you crop, never stretch. */
@@ -363,6 +365,61 @@ const pct = (n: number) => Math.round(n * 100);
   }
 
   let index = RELEASE_FORMATS.findIndex((f) => f.id === DEFAULT_FORMAT_ID);
+
+  /**
+   * Rasterize the scene once so the digital half can be genuinely resampled.
+   * The SVG is serialized to a data URI; nothing external is fetched, so the
+   * canvas stays untainted and this works offline.
+   */
+  let sceneImg = null;
+  let sceneReady = false;
+  (function loadScene() {
+    const svg = document.getElementById('loupeSel-root');
+    if (!svg) return;
+    const clone = svg.cloneNode(true);
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clone.setAttribute('width', '1430');
+    clone.setAttribute('height', '1000');
+    const src = 'data:image/svg+xml;charset=utf-8,' +
+      encodeURIComponent(new XMLSerializer().serializeToString(clone));
+    sceneImg = new Image();
+    sceneImg.onload = () => { sceneReady = true; render(); };
+    sceneImg.src = src;
+  })();
+
+  /**
+   * Draw the same patch the reference half shows, but resampled to the
+   * format's pixel count and scaled back up with smoothing off — which is
+   * what a low-resolution image actually looks like.
+   */
+  function drawPixelated(canvas, w, h, negW, negH, ZOOM, detailPx) {
+    if (!sceneReady) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = Math.max(1, Math.round(w * dpr));
+    canvas.height = Math.max(1, Math.round(h * dpr));
+    const ctx = canvas.getContext('2d');
+
+    // Blocks across the visible half. Deliberately exaggerated: true pixels at
+    // this magnification would be invisible, and the point is relative
+    // coarseness between formats.
+    const blocks = Math.max(4, Math.round(detailPx / 260));
+    const small = document.createElement('canvas');
+    small.width = blocks;
+    small.height = Math.max(1, Math.round(blocks * (h / w)));
+
+    // Same framing maths as the DOM half, so both sides show the same spot.
+    const sw = negW * ZOOM, sh = negH * ZOOM;
+    const tx = w / 2 - FOCUS_X * sw;
+    const ty = h / 2 - FOCUS_Y * sh;
+    const k = blocks / w;
+
+    const sctx = small.getContext('2d');
+    sctx.drawImage(sceneImg, tx * k, ty * k, sw * k, sh * k);
+
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(small, 0, 0, canvas.width, canvas.height);
+  }
 
   function render() {
     const current = RELEASE_FORMATS[index];
@@ -428,9 +485,8 @@ const pct = (n: number) => Math.round(n * 100);
     // is the treatment applied to the right one.
     const loupe = $('loupe');
     const halfW = loupe.clientWidth / 2;
+    const loupeH = loupe.querySelector('canvas').parentElement.clientHeight;
     const ZOOM = 7;
-    const FOCUS_X = 0.42;  // the ship and sail carry the most fine structure
-    const FOCUS_Y = 0.46;
 
     const placeHalf = (el) => {
       el.style.width = `${negW * ZOOM}px`;
@@ -441,26 +497,29 @@ const pct = (n: number) => Math.round(n * 100);
     placeHalf($('refInner'));
     placeHalf($('loupeInner'));
 
-    // Softness stands in for lost resolution: the honest, instantly legible cue.
+    // Softness stands in for lost resolution on film; digital gets real blocks.
     const ratio = SOURCE_DETAIL_PX / current.detailPx;
     const blur = Math.max(0, (ratio - 1) * 0.5);
-    $('loupeInner').style.filter = blur ? `blur(${blur.toFixed(2)}px)` : 'none';
 
-    const grid = $('loupeGrid');
     const grain = $('loupeGrain');
-    const cell = Math.max(1.5, ratio * 1.7);
+    const canvas = $('pixCanvas');
+    const sel = $('loupeInner');
 
     if (current.isFilm) {
-      grid.style.display = 'none';
+      // Film: no sampling grid exists, so detail is lost as softness and grain.
+      canvas.classList.add('hidden');
+      sel.style.display = '';
       grain.style.display = 'block';
+      sel.style.filter = blur ? `blur(${blur.toFixed(2)}px)` : 'none';
       $('loupeLabel').textContent = STR.loupeFilm.replace('{px}', current.resolution);
     } else {
+      // Digital: the image is genuinely resampled onto a fixed pixel grid, so
+      // it is drawn blocky rather than having a mesh laid over a sharp image.
+      // The mesh looked like graph paper; low resolution looks like this.
       grain.style.display = 'none';
-      grid.style.display = 'block';
-      grid.style.backgroundImage =
-        'linear-gradient(to right, rgba(0,0,0,.55) 1px, transparent 1px),' +
-        'linear-gradient(to bottom, rgba(0,0,0,.55) 1px, transparent 1px)';
-      grid.style.backgroundSize = `${cell}px ${cell}px`;
+      sel.style.display = 'none';
+      canvas.classList.remove('hidden');
+      drawPixelated(canvas, halfW, loupeH, negW, negH, ZOOM, current.detailPx);
       $('loupeLabel').textContent = STR.loupeDigital.replace('{px}', current.resolution);
     }
 
