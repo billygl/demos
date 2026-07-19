@@ -156,6 +156,9 @@ const pct = (n: number) => Math.round(n * 100);
           <div id="bandBottom" class="band absolute left-0 bottom-0 w-full"></div>
           <div id="bandLeft"   class="band absolute top-0 left-0 h-full"></div>
           <div id="bandRight"  class="band absolute top-0 right-0 h-full"></div>
+          <div id="focusMark"
+               class="absolute w-7 h-7 -ml-3.5 -mt-3.5 rounded-full border-2 border-white/70
+                      pointer-events-none shadow-[0_0_0_1px_rgba(0,0,0,.6)]"></div>
           <div id="keepOutline"
                class="absolute border-2 border-amber-400 pointer-events-none transition-all duration-500 ease-out
                       shadow-[0_0_30px_-6px_rgba(251,191,36,.6)]"></div>
@@ -168,8 +171,9 @@ const pct = (n: number) => Math.round(n * 100);
           can rate texture in isolation, everybody can see which half is softer.
         */}
         <figure id="loupe"
-          class="absolute right-2 top-2 w-[168px] sm:w-[232px]
-                 rounded-md overflow-hidden border border-zinc-600 bg-zinc-950 shadow-lg">
+          class="absolute right-2 top-2 w-[168px] sm:w-[232px] cursor-grab active:cursor-grabbing
+                 touch-none select-none rounded-md overflow-hidden border border-zinc-600
+                 bg-zinc-950 shadow-lg">
           <div class="relative flex h-[66px] sm:h-[92px]">
 
             {/* Reference: always the negative, never altered. */}
@@ -350,8 +354,11 @@ const pct = (n: number) => Math.round(n * 100);
 
 <script is:inline define:vars={{ RELEASE_FORMATS, SOURCE_RATIO, DEFAULT_FORMAT_ID, STR }}>
   const $ = (id) => document.getElementById(id);
-  const FOCUS_X = 0.42;   // the ship and sail carry the most fine structure
-  const FOCUS_Y = 0.46;
+  // Where the loupe is looking, as a fraction of the frame. Mutable: the user
+  // can drag the loupe to inspect anywhere, since one fixed patch cannot be
+  // interesting for every format.
+  let FOCUS_X = 0.44;
+  let FOCUS_Y = 0.56;   // ship, horizon and sail base — the busiest region
   const all = (sel) => Array.from(document.querySelectorAll(sel));
 
   /** Kept fraction per axis. One is always 1 — you crop, never stretch. */
@@ -486,7 +493,7 @@ const pct = (n: number) => Math.round(n * 100);
     const loupe = $('loupe');
     const halfW = loupe.clientWidth / 2;
     const loupeH = loupe.querySelector('canvas').parentElement.clientHeight;
-    const ZOOM = 7;
+    const ZOOM = 2.4;
 
     const placeHalf = (el) => {
       el.style.width = `${negW * ZOOM}px`;
@@ -509,8 +516,20 @@ const pct = (n: number) => Math.round(n * 100);
       // Film: no sampling grid exists, so detail is lost as softness and grain.
       canvas.classList.add('hidden');
       sel.style.display = '';
-      grain.style.display = 'block';
       sel.style.filter = blur ? `blur(${blur.toFixed(2)}px)` : 'none';
+
+      // The negative compared against itself must be pixel-identical. Grain is
+      // drawn with mix-blend-overlay, so leaving it on at full strength tinted
+      // the right half and made "both sides are the same" visibly false.
+      if (current.detailPx >= SOURCE_DETAIL_PX) {
+        grain.style.display = 'none';
+      } else {
+        grain.style.display = 'block';
+        const freq = Math.max(0.16, 1.4 * (current.detailPx / SOURCE_DETAIL_PX));
+        $('grainNoise').setAttribute('baseFrequency', freq.toFixed(3));
+        $('grainRect').setAttribute('opacity',
+          (0.18 + 0.32 * (1 - current.detailPx / SOURCE_DETAIL_PX)).toFixed(2));
+      }
       $('loupeLabel').textContent = STR.loupeFilm.replace('{px}', current.resolution);
     } else {
       // Digital: the image is genuinely resampled onto a fixed pixel grid, so
@@ -525,6 +544,10 @@ const pct = (n: number) => Math.round(n * 100);
 
     // When the negative IS the selection, say so rather than showing two
     // identical halves and letting it look like a rendering bug.
+    const mark = $('focusMark');
+    mark.style.left = `${offX + FOCUS_X * negW * c.width}px`;
+    mark.style.top = `${offY + FOCUS_Y * negH * c.height}px`;
+
     $('loupeCaption').textContent = current.detailPx >= SOURCE_DETAIL_PX
       ? STR.loupeSame : STR.loupeCompare;
 
@@ -554,6 +577,48 @@ const pct = (n: number) => Math.round(n * 100);
       select(RELEASE_FORMATS.findIndex((f) => f.id === btn.dataset.format))));
   all('.step-btn').forEach((btn) =>
     btn.addEventListener('click', () => select(index + Number(btn.dataset.step))));
+
+  // Drag the loupe to inspect anywhere in the frame. One fixed patch cannot
+  // be the interesting one for every format, and the flat sky reads as a bug.
+  (function enableLoupeDrag() {
+    const loupe = $('loupe');
+    let dragging = false, lastX = 0, lastY = 0;
+
+    const onDown = (e) => {
+      dragging = true;
+      lastX = e.clientX; lastY = e.clientY;
+      loupe.setPointerCapture?.(e.pointerId);
+      e.preventDefault();
+      e.stopPropagation();   // the stage listens for swipes; this is not one
+    };
+
+    const onMove = (e) => {
+      if (!dragging) return;
+      const stage = $('stage');
+      const box = stage.getBoundingClientRect();
+      // Dragging right should reveal what is to the right, so the focus moves
+      // with the pointer rather than against it.
+      const ZOOM = 2.4;
+      FOCUS_X = Math.min(1, Math.max(0, FOCUS_X - (e.clientX - lastX) / (box.width * ZOOM)));
+      FOCUS_Y = Math.min(1, Math.max(0, FOCUS_Y - (e.clientY - lastY) / (box.height * ZOOM)));
+      lastX = e.clientX; lastY = e.clientY;
+      e.stopPropagation();
+      render();
+    };
+
+    const onUp = (e) => {
+      dragging = false;
+      loupe.releasePointerCapture?.(e.pointerId);
+    };
+
+    loupe.addEventListener('pointerdown', onDown);
+    loupe.addEventListener('pointermove', onMove);
+    loupe.addEventListener('pointerup', onUp);
+    loupe.addEventListener('pointercancel', onUp);
+    // Swallow touch gestures so dragging the loupe never changes format.
+    ['touchstart', 'touchmove', 'touchend'].forEach((t) =>
+      loupe.addEventListener(t, (e) => e.stopPropagation(), { passive: true }));
+  })();
 
   // Swipe, gated to horizontal intent so vertical gestures still behave.
   let startX = 0, startY = 0;
