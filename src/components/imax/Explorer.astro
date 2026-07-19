@@ -16,6 +16,7 @@ const STR = {
   loupeFilm: L.loupeFilm('{px}'),
   loupeSame: L.loupeSame,
   loupeCompare: L.loupeCompare,
+  loupeHint: L.loupeHint,
   loupeDigital: L.loupeDigital('{px}'),
   detailOnly: L.detailOnly(0).replace('0', '{d}'),
   cutVertical: L.cutVertical,
@@ -141,7 +142,7 @@ const pct = (n: number) => Math.round(n * 100);
     {/* The only element allowed to grow. */}
     <div class="relative flex-1 min-h-0">
       <div id="stage"
-           class="absolute inset-0 touch-pan-y
+           class="absolute inset-0 touch-none cursor-crosshair
                   bg-zinc-950 border border-zinc-800 rounded overflow-hidden">
         {/*
           Centred by absolute + transform rather than grid/flex centring.
@@ -171,9 +172,8 @@ const pct = (n: number) => Math.round(n * 100);
           can rate texture in isolation, everybody can see which half is softer.
         */}
         <figure id="loupe"
-          class="absolute right-2 top-2 w-[168px] sm:w-[232px] cursor-grab active:cursor-grabbing
-                 touch-none select-none rounded-md overflow-hidden border border-zinc-600
-                 bg-zinc-950 shadow-lg">
+          class="absolute right-2 top-2 w-[168px] sm:w-[232px] pointer-events-none select-none
+                 rounded-md overflow-hidden border border-zinc-600 bg-zinc-950 shadow-lg">
           <div class="relative flex h-[66px] sm:h-[92px]">
 
             {/* Reference: always the negative, never altered. */}
@@ -208,8 +208,8 @@ const pct = (n: number) => Math.round(n * 100);
           </div>
 
           <figcaption id="loupeCaption"
-            class="px-1.5 py-0.5 bg-zinc-950 border-t border-zinc-700
-                   text-[7px] sm:text-[8px] text-zinc-500 text-center truncate">{L.loupeCompare}</figcaption>
+            class="px-1.5 py-0.5 bg-zinc-950 border-t border-zinc-700 leading-tight
+                   text-[7px] sm:text-[8px] text-zinc-500 text-center">{L.loupeCompare}</figcaption>
         </figure>
 
         <p id="lossTag"
@@ -258,6 +258,8 @@ const pct = (n: number) => Math.round(n * 100);
       The headline sits here, always visible. It used to be behind the dialog,
       which meant the scarcity story — the actual point of the page — went unread.
     */}
+    <p class="shrink-0 text-[10px] text-zinc-600 leading-tight">{L.loupeHint}</p>
+
     <div class="shrink-0 flex items-start gap-2">
       <span class="shrink-0 mt-[3px] w-1 h-3.5 rounded-full bg-amber-400"></span>
       <p id="fHeadline" class="text-[12px] sm:text-[13px] leading-snug text-zinc-300">{initial.headline}</p>
@@ -578,59 +580,36 @@ const pct = (n: number) => Math.round(n * 100);
   all('.step-btn').forEach((btn) =>
     btn.addEventListener('click', () => select(index + Number(btn.dataset.step))));
 
-  // Drag the loupe to inspect anywhere in the frame. One fixed patch cannot
-  // be the interesting one for every format, and the flat sky reads as a bug.
-  (function enableLoupeDrag() {
-    const loupe = $('loupe');
-    let dragging = false, lastX = 0, lastY = 0;
+  // Point at what you want to inspect: press or drag anywhere on the frame and
+  // the loupe follows. Dragging the readout itself was backwards — it made you
+  // look at one thing while manipulating another.
+  //
+  // Swipe-to-change-format used to live on the stage and would fight this, so
+  // it is gone. Format switching still has chips, steppers and arrow keys;
+  // panning the loupe had no alternative.
+  (function enableFocusPicking() {
+    const stage = $('stage');
+    let picking = false;
 
-    const onDown = (e) => {
-      dragging = true;
-      lastX = e.clientX; lastY = e.clientY;
-      loupe.setPointerCapture?.(e.pointerId);
-      e.preventDefault();
-      e.stopPropagation();   // the stage listens for swipes; this is not one
-    };
-
-    const onMove = (e) => {
-      if (!dragging) return;
-      const stage = $('stage');
-      const box = stage.getBoundingClientRect();
-      // Dragging right should reveal what is to the right, so the focus moves
-      // with the pointer rather than against it.
-      const ZOOM = 2.4;
-      FOCUS_X = Math.min(1, Math.max(0, FOCUS_X - (e.clientX - lastX) / (box.width * ZOOM)));
-      FOCUS_Y = Math.min(1, Math.max(0, FOCUS_Y - (e.clientY - lastY) / (box.height * ZOOM)));
-      lastX = e.clientX; lastY = e.clientY;
-      e.stopPropagation();
+    const setFocus = (e) => {
+      const vp = $('viewport').getBoundingClientRect();
+      if (vp.width < 2) return;
+      FOCUS_X = Math.min(1, Math.max(0, (e.clientX - vp.left) / vp.width));
+      FOCUS_Y = Math.min(1, Math.max(0, (e.clientY - vp.top) / vp.height));
       render();
     };
 
-    const onUp = (e) => {
-      dragging = false;
-      loupe.releasePointerCapture?.(e.pointerId);
-    };
-
-    loupe.addEventListener('pointerdown', onDown);
-    loupe.addEventListener('pointermove', onMove);
-    loupe.addEventListener('pointerup', onUp);
-    loupe.addEventListener('pointercancel', onUp);
-    // Swallow touch gestures so dragging the loupe never changes format.
-    ['touchstart', 'touchmove', 'touchend'].forEach((t) =>
-      loupe.addEventListener(t, (e) => e.stopPropagation(), { passive: true }));
+    stage.addEventListener('pointerdown', (e) => {
+      picking = true;
+      stage.setPointerCapture?.(e.pointerId);
+      setFocus(e);
+      e.preventDefault();
+    });
+    stage.addEventListener('pointermove', (e) => { if (picking) setFocus(e); });
+    const stop = (e) => { picking = false; stage.releasePointerCapture?.(e.pointerId); };
+    stage.addEventListener('pointerup', stop);
+    stage.addEventListener('pointercancel', stop);
   })();
-
-  // Swipe, gated to horizontal intent so vertical gestures still behave.
-  let startX = 0, startY = 0;
-  const stage = $('stage');
-  stage.addEventListener('touchstart', (e) => {
-    startX = e.touches[0].clientX; startY = e.touches[0].clientY;
-  }, { passive: true });
-  stage.addEventListener('touchend', (e) => {
-    const dx = e.changedTouches[0].clientX - startX;
-    const dy = e.changedTouches[0].clientY - startY;
-    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.5) select(index + (dx < 0 ? 1 : -1));
-  }, { passive: true });
 
   const dlg = $('whyDialog');
   [$('whyBtnDesktop'), $('whyBtnMobile'), $('whyBtnInline')].forEach((b) => b?.addEventListener('click', () => dlg.showModal()));

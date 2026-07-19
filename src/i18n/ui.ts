@@ -49,13 +49,14 @@ export const UI = {
     negativeTermAside:
       'Dos cosas distintas se pueden perder: el ENCUADRE (qué parte del cuadro se recorta) y el DETALLE (cuánta resolución alcanza a resolver el proyector). Una sala puede conservar todo el encuadre y aun así perder la mayor parte del detalle.',
 
-    loupeFilm: (px: string) => `grano ${px} — sin grilla`,
-    loupeDigital: (px: string) => `grilla de pixeles · ${px}`,
+    loupeFilm: (px: string) => `${px} · grano`,
+    loupeDigital: (px: string) => `${px} · pixeles`,
     loupeRef: 'negativo',
     // Says what to look FOR, not how the view is built. The previous caption
     // described the mechanism, which answered a question nobody was asking.
-    loupeCompare: 'Mira cuánta nitidez se pierde a la derecha',
-    loupeSame: 'Aquí no se pierde nitidez: los dos lados son iguales',
+    loupeCompare: 'Mira la nitidez a la derecha',
+    loupeSame: 'Sin pérdida: los dos lados iguales',
+    loupeHint: 'Arrastra sobre la imagen para mover la lupa',
 
     fullNegative: 'Negativo completo — nada recortado, todo el detalle',
     // Full framing but reduced resolution: the case that used to read as "loses nothing".
@@ -100,11 +101,12 @@ export const UI = {
     negativeTermAside:
       'Two different things can be lost: FRAMING (how much of the frame is cropped away) and DETAIL (how much resolution the projector can actually resolve). A venue can keep all the framing and still lose most of the detail.',
 
-    loupeFilm: (px: string) => `${px} grain — no grid`,
-    loupeDigital: (px: string) => `pixel grid · ${px}`,
+    loupeFilm: (px: string) => `${px} · grain`,
+    loupeDigital: (px: string) => `${px} · pixels`,
     loupeRef: 'negative',
-    loupeCompare: 'Look how much sharpness is lost on the right',
-    loupeSame: 'Nothing lost here — both sides are the same',
+    loupeCompare: 'Watch the sharpness on the right',
+    loupeSame: 'No loss — both sides identical',
+    loupeHint: 'Drag on the image to move the loupe',
 
     fullNegative: 'Full negative — nothing cropped, all the detail',
     detailOnly: (d: number) => `Full framing, but only ~${d}% of the negative's detail`,
