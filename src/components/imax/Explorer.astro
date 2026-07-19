@@ -14,6 +14,11 @@ const L = t(lang);
 const STR = {
   cutNothing: L.cutNothing,
   loupeFilm: L.loupeFilm('{px}'),
+  loupeSame: L.loupeSame,
+  loupeCompare: L.loupeCompare,
+  loupeHint: L.loupeHint,
+  loupeCropped: L.loupeCropped,
+  loupeCroppedNote: L.loupeCroppedNote,
   loupeDigital: L.loupeDigital('{px}'),
   detailOnly: L.detailOnly(0).replace('0', '{d}'),
   cutVertical: L.cutVertical,
@@ -35,7 +40,7 @@ const categories = [...new Set(rows.map((r) => r.cat))];
 const pct = (n: number) => Math.round(n * 100);
 ---
 
-<!--
+{/*
   One viewport, no page scroll. Every row is shrink-0 except the stage, which
   takes flex-1 and min-h-0 so it absorbs whatever height is left over.
   `min-h-0` is load-bearing: without it a flex child refuses to shrink below
@@ -44,11 +49,11 @@ const pct = (n: number) => Math.round(n * 100);
   The old two-mode toggle is gone. Showing the full negative with the discarded
   bands hatched already communicates the projected frame — the amber outline IS
   "as you'd see it", so a second mode was saying the same thing twice.
--->
+*/}
 <main class="flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-[300px_minmax(0,1fr)]
              gap-2 sm:gap-4 px-2 sm:px-5 py-2 sm:py-4">
 
-  <!-- ── MOBILE: chip switcher ───────────────────────────────────── -->
+  {/* ── MOBILE: chip switcher ───────────────────────────────────── */}
   <div class="lg:hidden shrink-0">
     <div id="chipStrip"
          class="flex gap-1.5 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-0.5"
@@ -66,7 +71,7 @@ const pct = (n: number) => Math.round(n * 100);
     </div>
   </div>
 
-  <!-- ── DESKTOP: sidebar ────────────────────────────────────────── -->
+  {/* ── DESKTOP: sidebar ────────────────────────────────────────── */}
   <aside class="hidden lg:flex flex-col min-h-0 gap-3">
     <div class="bg-zinc-900/60 border border-zinc-800 rounded-lg p-3 flex-1 min-h-0 flex flex-col">
       <p class="text-[10px] uppercase tracking-widest text-zinc-500 mb-2 shrink-0">{L.howWatching}</p>
@@ -120,7 +125,7 @@ const pct = (n: number) => Math.round(n * 100);
     </button>
   </aside>
 
-  <!-- ── Stage column ────────────────────────────────────────────── -->
+  {/* ── Stage column ────────────────────────────────────────────── */}
   <section class="flex-1 min-h-0 flex flex-col gap-2">
 
     <div class="shrink-0 flex items-center justify-between gap-3">
@@ -136,17 +141,17 @@ const pct = (n: number) => Math.round(n * 100);
       </div>
     </div>
 
-    <!-- The only element allowed to grow. -->
+    {/* The only element allowed to grow. */}
     <div class="relative flex-1 min-h-0">
       <div id="stage"
-           class="absolute inset-0 touch-pan-y
+           class="absolute inset-0 touch-none cursor-crosshair
                   bg-zinc-950 border border-zinc-800 rounded overflow-hidden">
-        <!--
+        {/*
           Centred by absolute + transform rather than grid/flex centring.
           The viewport's size is written from JS in px, and a centring scheme
           that depends on the parent's content box drifts if that box is
           measured before layout settles. This is immune to that.
-        -->
+        */}
         <div id="viewport"
              class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden ring-2 ring-cyan-400/70">
           <div id="negativeBox" class="absolute top-0 left-0"><Scene /></div>
@@ -154,38 +159,59 @@ const pct = (n: number) => Math.round(n * 100);
           <div id="bandBottom" class="band absolute left-0 bottom-0 w-full"></div>
           <div id="bandLeft"   class="band absolute top-0 left-0 h-full"></div>
           <div id="bandRight"  class="band absolute top-0 right-0 h-full"></div>
+          <div id="focusMark"
+               class="absolute w-7 h-7 -ml-3.5 -mt-3.5 rounded-full border-2 border-white/70
+                      pointer-events-none shadow-[0_0_0_1px_rgba(0,0,0,.6)]"></div>
           <div id="keepOutline"
                class="absolute border-2 border-amber-400 pointer-events-none transition-all duration-500 ease-out
                       shadow-[0_0_30px_-6px_rgba(251,191,36,.6)]"></div>
         </div>
 
-        <!--
-          Detail loupe: a magnified patch of the same scene, overlaid with the
-          sampling structure of the selected format. Film gets random grain,
-          digital gets a grid whose cell size scales with resolution — which is
-          the point a "4K" label cannot make on its own.
-        -->
+        {/*
+          Split loupe. The same patch of the same image at the same zoom, with
+          the ~18K negative permanently on the left and the selected format on
+          the right. A side-by-side removes absolute judgement entirely: nobody
+          can rate texture in isolation, everybody can see which half is softer.
+        */}
         <figure id="loupe"
-          class="absolute right-2 top-2 w-[86px] h-[86px] sm:w-[124px] sm:h-[124px]
+          class="absolute right-2 top-2 w-[168px] sm:w-[232px] pointer-events-none select-none
                  rounded-md overflow-hidden border border-zinc-600 bg-zinc-950 shadow-lg">
-          <div id="loupeInner" class="absolute top-0 left-0 origin-top-left"><Scene idPrefix="loupe" /></div>
+          <div class="relative flex h-[66px] sm:h-[92px]">
 
-          {/* Digital: a hard sampling grid. */}
-          <div id="loupeGrid" class="absolute inset-0 pointer-events-none"></div>
+            {/* Reference: always the negative, never altered. */}
+            <div class="relative w-1/2 overflow-hidden">
+              <div id="refInner" class="absolute top-0 left-0 origin-top-left">
+                <Scene idPrefix="loupeRef" />
+              </div>
+              <span class="absolute inset-x-0 top-0 px-1 bg-zinc-950/80 text-center
+                           text-[8px] sm:text-[9px] font-mono text-cyan-300 truncate">~18K {L.loupeRef}</span>
+            </div>
 
-          {/* Film: real random noise, so "no grid" is visible rather than asserted. */}
-          <svg id="loupeGrain" class="absolute inset-0 w-full h-full pointer-events-none mix-blend-overlay"
-               aria-hidden="true">
-            <filter id="grainFilter">
-              <feTurbulence id="grainNoise" type="fractalNoise" baseFrequency="1.5"
-                            numOctaves="4" stitchTiles="stitch" />
-            </filter>
-            <rect id="grainRect" width="100%" height="100%" filter="url(#grainFilter)" opacity="0.35" />
-          </svg>
+            <div class="w-px bg-zinc-500 shrink-0"></div>
 
-          <figcaption class="absolute inset-x-0 bottom-0 px-1 py-0.5 bg-zinc-950/85 text-center">
-            <span id="loupeLabel" class="block text-[8px] sm:text-[9px] font-mono text-zinc-300 truncate"></span>
-          </figcaption>
+            {/* Selected format: softened, and overlaid with its sampling structure. */}
+            <div class="relative w-1/2 overflow-hidden">
+              <div id="loupeInner" class="absolute top-0 left-0 origin-top-left">
+                <Scene idPrefix="loupeSel" />
+              </div>
+              <canvas id="pixCanvas" class="absolute inset-0 w-full h-full hidden"></canvas>
+              <svg id="loupeGrain" class="absolute inset-0 w-full h-full pointer-events-none mix-blend-overlay"
+                   aria-hidden="true">
+                <filter id="grainFilter">
+                  <feTurbulence id="grainNoise" type="fractalNoise" baseFrequency="0.55"
+                                numOctaves="4" stitchTiles="stitch" />
+                </filter>
+                <rect id="grainRect" width="100%" height="100%" filter="url(#grainFilter)" opacity="0.5" />
+              </svg>
+              <span id="loupeLabel"
+                    class="absolute inset-x-0 top-0 px-1 bg-zinc-950/80 text-center
+                           text-[8px] sm:text-[9px] font-mono text-amber-300 truncate"></span>
+            </div>
+          </div>
+
+          <figcaption id="loupeCaption"
+            class="px-1.5 py-0.5 bg-zinc-950 border-t border-zinc-700 leading-tight
+                   text-[7px] sm:text-[8px] text-zinc-500 text-center">{L.loupeCompare}</figcaption>
         </figure>
 
         <p id="lossTag"
@@ -203,7 +229,7 @@ const pct = (n: number) => Math.round(n * 100);
                hover:bg-zinc-900 hover:text-cyan-300 transition cursor-pointer">&#8250;</button>
     </div>
 
-    <!-- Compact readout strip: the two losses side by side, never merged. -->
+    {/* Compact readout strip: the two losses side by side, never merged. */}
     <div class="shrink-0 grid grid-cols-4 gap-1.5 sm:gap-2">
       <div class="bg-zinc-900/60 border border-zinc-800 rounded px-2 py-1.5">
         <p class="text-[9px] uppercase tracking-wider text-zinc-500 truncate">{L.framing}</p>
@@ -230,10 +256,12 @@ const pct = (n: number) => Math.round(n * 100);
       </div>
     </div>
 
-    <!--
+    {/*
       The headline sits here, always visible. It used to be behind the dialog,
       which meant the scarcity story — the actual point of the page — went unread.
-    -->
+    */}
+    <p class="shrink-0 text-[10px] text-zinc-600 leading-tight">{L.loupeHint}</p>
+
     <div class="shrink-0 flex items-start gap-2">
       <span class="shrink-0 mt-[3px] w-1 h-3.5 rounded-full bg-amber-400"></span>
       <p id="fHeadline" class="text-[12px] sm:text-[13px] leading-snug text-zinc-300">{initial.headline}</p>
@@ -244,9 +272,9 @@ const pct = (n: number) => Math.round(n * 100);
   </section>
 </main>
 
-<!-- ── "Why" dialog: keeps the long-form context off the main view ──
+{/* ── "Why" dialog: keeps the long-form context off the main view ──
      A native <dialog> gets focus trapping, Esc-to-close and the backdrop for
-     free — no library, no scroll added to the page underneath. -->
+     free — no library, no scroll added to the page underneath. */}
 <dialog id="whyDialog"
   class="backdrop:bg-black/70 bg-zinc-900 border border-zinc-700 rounded-xl p-0
          w-[min(92vw,640px)] max-h-[85dvh] text-zinc-200">
@@ -260,15 +288,15 @@ const pct = (n: number) => Math.round(n * 100);
 
   <div class="px-5 py-4 space-y-4 overflow-y-auto">
 
-    <!-- Define the term before using it: every number on the page is stated
-         relative to "the negative", which is not everyday vocabulary. -->
+    {/* Define the term before using it: every number on the page is stated
+         relative to "the negative", which is not everyday vocabulary. */}
     <section class="rounded-lg border border-cyan-400/25 bg-cyan-400/[.04] p-3.5">
       <h4 class="text-[13px] font-semibold text-cyan-300">{L.negativeTermTitle}</h4>
       {L.negativeTermBody.map((para) => (
         <p class="text-[13px] leading-relaxed text-zinc-300 mt-2">{para}</p>
       ))}
 
-      <!-- A miniature of the two shapes, so the word lands visually too. -->
+      {/* A miniature of the two shapes, so the word lands visually too. */}
       <div class="mt-3 flex items-end gap-3">
         <div class="text-center">
           <div class="w-[54px] h-[38px] border-2 border-cyan-400 rounded-[2px] bg-cyan-400/10"></div>
@@ -306,6 +334,13 @@ const pct = (n: number) => Math.round(n * 100);
   .bar { background: linear-gradient(90deg, #22d3ee, #0891b2); }
   .bar-detail { background: linear-gradient(90deg, #fbbf24, #b45309); }
 
+  /* Aimed at a region this format discards: the right half is struck out
+     rather than quietly showing image that never reaches the screen. */
+  #loupe.is-cropped #loupeInner,
+  #loupe.is-cropped #pixCanvas { opacity: .12; }
+  #loupe.is-cropped #loupeGrain { display: none !important; }
+  #loupe.is-cropped #loupeLabel { color: #fca5a5; }
+
   .format-btn[aria-checked='true'] {
     background: rgba(34,211,238,.08);
     border-color: rgba(34,211,238,.45);
@@ -330,6 +365,15 @@ const pct = (n: number) => Math.round(n * 100);
 
 <script is:inline define:vars={{ RELEASE_FORMATS, SOURCE_RATIO, DEFAULT_FORMAT_ID, STR }}>
   const $ = (id) => document.getElementById(id);
+  // Where the loupe is looking, as a fraction of the frame. Mutable: the user
+  // can drag the loupe to inspect anywhere, since one fixed patch cannot be
+  // interesting for every format.
+  // Default aim: the sun. A hard circular edge shows resampling as stair-steps,
+  // and the surrounding glow shows it as banding — two tells in one patch. The
+  // sail was a poor default: a flat gradient looks the same at any resolution,
+  // so the two halves appeared identical for every format.
+  let FOCUS_X = 0.755;
+  let FOCUS_Y = 0.235;
   const all = (sel) => Array.from(document.querySelectorAll(sel));
 
   /** Kept fraction per axis. One is always 1 — you crop, never stretch. */
@@ -343,6 +387,61 @@ const pct = (n: number) => Math.round(n * 100);
   }
 
   let index = RELEASE_FORMATS.findIndex((f) => f.id === DEFAULT_FORMAT_ID);
+
+  /**
+   * Rasterize the scene once so the digital half can be genuinely resampled.
+   * The SVG is serialized to a data URI; nothing external is fetched, so the
+   * canvas stays untainted and this works offline.
+   */
+  let sceneImg = null;
+  let sceneReady = false;
+  (function loadScene() {
+    const svg = document.getElementById('loupeSel-root');
+    if (!svg) return;
+    const clone = svg.cloneNode(true);
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clone.setAttribute('width', '1430');
+    clone.setAttribute('height', '1000');
+    const src = 'data:image/svg+xml;charset=utf-8,' +
+      encodeURIComponent(new XMLSerializer().serializeToString(clone));
+    sceneImg = new Image();
+    sceneImg.onload = () => { sceneReady = true; render(); };
+    sceneImg.src = src;
+  })();
+
+  /**
+   * Draw the same patch the reference half shows, but resampled to the
+   * format's pixel count and scaled back up with smoothing off — which is
+   * what a low-resolution image actually looks like.
+   */
+  function drawPixelated(canvas, w, h, negW, negH, ZOOM, detailPx) {
+    if (!sceneReady) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = Math.max(1, Math.round(w * dpr));
+    canvas.height = Math.max(1, Math.round(h * dpr));
+    const ctx = canvas.getContext('2d');
+
+    // Blocks across the visible half. Deliberately exaggerated: true pixels at
+    // this magnification would be invisible, and the point is relative
+    // coarseness between formats.
+    const blocks = Math.max(4, Math.round(detailPx / 260));
+    const small = document.createElement('canvas');
+    small.width = blocks;
+    small.height = Math.max(1, Math.round(blocks * (h / w)));
+
+    // Same framing maths as the DOM half, so both sides show the same spot.
+    const sw = negW * ZOOM, sh = negH * ZOOM;
+    const tx = w / 2 - FOCUS_X * sw;
+    const ty = h / 2 - FOCUS_Y * sh;
+    const k = blocks / w;
+
+    const sctx = small.getContext('2d');
+    sctx.drawImage(sceneImg, tx * k, ty * k, sw * k, sh * k);
+
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(small, 0, 0, canvas.width, canvas.height);
+  }
 
   function render() {
     const current = RELEASE_FORMATS[index];
@@ -403,45 +502,86 @@ const pct = (n: number) => Math.round(n * 100);
     $('statAxis').textContent =
       kept === 1 ? STR.cutNothing : current.ratio >= SOURCE_RATIO ? STR.cutVertical : STR.cutHorizontal;
 
-    // ── Loupe ────────────────────────────────────────────────────────
-    // Magnify the same patch of the scene at a fixed zoom, then overlay the
-    // format's sampling structure. Cell size is exaggerated: real pixels at
-    // this scale would be invisible, and the point is the RELATIVE coarseness.
+    // ── Split loupe ──────────────────────────────────────────────────
+    // Both halves show the same patch at the same zoom, so the only difference
+    // is the treatment applied to the right one.
     const loupe = $('loupe');
-    const lw = loupe.clientWidth;
-    const ZOOM = 7;
-    const inner = $('loupeInner');
-    inner.style.width = `${negW * ZOOM}px`;
-    inner.style.height = `${negH * ZOOM}px`;
-    // Centre on the ship and sail, which carry the most fine structure.
-    inner.style.transform =
-      `translate(${lw / 2 - 0.42 * negW * ZOOM}px, ${lw / 2 - 0.46 * negH * ZOOM}px)`;
+    const halfW = loupe.clientWidth / 2;
+    const loupeH = loupe.querySelector('canvas').parentElement.clientHeight;
+    const ZOOM = 2.0;
 
-    const cell = Math.max(1.5, (SOURCE_DETAIL_PX / current.detailPx) * 1.7);
-    const grid = $('loupeGrid');
+    const placeHalf = (el) => {
+      el.style.width = `${negW * ZOOM}px`;
+      el.style.height = `${negH * ZOOM}px`;
+      // halfW for x, loupeH for y. Using halfW for both aimed the reference
+      // half at a different point than the canvas half, so the two sides were
+      // not comparing the same patch at all.
+      el.style.transform =
+        `translate(${halfW / 2 - FOCUS_X * negW * ZOOM}px, ${loupeH / 2 - FOCUS_Y * negH * ZOOM}px)`;
+    };
+    placeHalf($('refInner'));
+    placeHalf($('loupeInner'));
+
+    // Softness stands in for lost resolution on film; digital gets real blocks.
+    const ratio = SOURCE_DETAIL_PX / current.detailPx;
+    const blur = Math.max(0, (ratio - 1) * 0.5);
+
     const grain = $('loupeGrain');
+    const canvas = $('pixCanvas');
+    const sel = $('loupeInner');
+
+    // The loupe samples the negative, so it can be aimed at a region this
+    // format crops away entirely — showing it as "what you see" would be a lie.
+    const kx = (1 - c.width) / 2, ky = (1 - c.height) / 2;
+    const cropped =
+      FOCUS_X < kx || FOCUS_X > 1 - kx || FOCUS_Y < ky || FOCUS_Y > 1 - ky;
+    $('loupe').classList.toggle('is-cropped', cropped);
 
     if (current.isFilm) {
-      grid.style.display = 'none';
-      grain.style.display = 'block';
-      // Film has no grid, but it is not all equally fine. Grain frequency
-      // tracks resolution, so a ~4K 35mm print reads visibly coarser than an
-      // ~18K IMAX negative — otherwise every film format looked identical and
-      // the loupe silently ignored resolution for exactly these formats.
-      const freq = Math.max(0.16, 1.5 * (current.detailPx / SOURCE_DETAIL_PX));
-      $('grainNoise').setAttribute('baseFrequency', freq.toFixed(3));
-      // Coarser stock is also grainier to look at, not just softer.
-      $('grainRect').setAttribute('opacity',
-        (0.35 + 0.45 * (1 - current.detailPx / SOURCE_DETAIL_PX)).toFixed(2));
+      // Film: no sampling grid exists, so detail is lost as softness and grain.
+      canvas.classList.add('hidden');
+      sel.style.display = '';
+      sel.style.filter = blur ? `blur(${blur.toFixed(2)}px)` : 'none';
+
+      // The negative compared against itself must be pixel-identical. Grain is
+      // drawn with mix-blend-overlay, so leaving it on at full strength tinted
+      // the right half and made "both sides are the same" visibly false.
+      if (current.detailPx >= SOURCE_DETAIL_PX) {
+        grain.style.display = 'none';
+      } else {
+        grain.style.display = 'block';
+        const freq = Math.max(0.16, 1.4 * (current.detailPx / SOURCE_DETAIL_PX));
+        $('grainNoise').setAttribute('baseFrequency', freq.toFixed(3));
+        $('grainRect').setAttribute('opacity',
+          (0.18 + 0.32 * (1 - current.detailPx / SOURCE_DETAIL_PX)).toFixed(2));
+      }
       $('loupeLabel').textContent = STR.loupeFilm.replace('{px}', current.resolution);
     } else {
+      // Digital: the image is genuinely resampled onto a fixed pixel grid, so
+      // it is drawn blocky rather than having a mesh laid over a sharp image.
+      // The mesh looked like graph paper; low resolution looks like this.
       grain.style.display = 'none';
-      grid.style.display = 'block';
-      grid.style.backgroundImage =
-        'linear-gradient(to right, rgba(0,0,0,.55) 1px, transparent 1px),' +
-        'linear-gradient(to bottom, rgba(0,0,0,.55) 1px, transparent 1px)';
-      grid.style.backgroundSize = `${cell}px ${cell}px`;
+      sel.style.display = 'none';
+      canvas.classList.remove('hidden');
+      drawPixelated(canvas, halfW, loupeH, negW, negH, ZOOM, current.detailPx);
       $('loupeLabel').textContent = STR.loupeDigital.replace('{px}', current.resolution);
+    }
+
+    // When the negative IS the selection, say so rather than showing two
+    // identical halves and letting it look like a rendering bug.
+    // FOCUS is a fraction of the whole negative, and the marker lives inside
+    // the negative box — so no crop scaling and no offset belong here.
+    const mark = $('focusMark');
+    mark.style.left = `${FOCUS_X * negW}px`;
+    mark.style.top = `${FOCUS_Y * negH}px`;
+    mark.style.borderColor = cropped ? 'rgba(252,165,165,.95)' : 'rgba(255,255,255,.7)';
+
+    if (cropped) {
+      $('loupeLabel').textContent = STR.loupeCropped;
+      $('loupeCaption').textContent = STR.loupeCroppedNote;
+    } else {
+      $('loupeCaption').textContent = current.detailPx >= SOURCE_DETAIL_PX
+        ? STR.loupeSame : STR.loupeCompare;
     }
 
     const tag = $('lossTag');
@@ -471,17 +611,36 @@ const pct = (n: number) => Math.round(n * 100);
   all('.step-btn').forEach((btn) =>
     btn.addEventListener('click', () => select(index + Number(btn.dataset.step))));
 
-  // Swipe, gated to horizontal intent so vertical gestures still behave.
-  let startX = 0, startY = 0;
-  const stage = $('stage');
-  stage.addEventListener('touchstart', (e) => {
-    startX = e.touches[0].clientX; startY = e.touches[0].clientY;
-  }, { passive: true });
-  stage.addEventListener('touchend', (e) => {
-    const dx = e.changedTouches[0].clientX - startX;
-    const dy = e.changedTouches[0].clientY - startY;
-    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.5) select(index + (dx < 0 ? 1 : -1));
-  }, { passive: true });
+  // Point at what you want to inspect: press or drag anywhere on the frame and
+  // the loupe follows. Dragging the readout itself was backwards — it made you
+  // look at one thing while manipulating another.
+  //
+  // Swipe-to-change-format used to live on the stage and would fight this, so
+  // it is gone. Format switching still has chips, steppers and arrow keys;
+  // panning the loupe had no alternative.
+  (function enableFocusPicking() {
+    const stage = $('stage');
+    let picking = false;
+
+    const setFocus = (e) => {
+      const vp = $('viewport').getBoundingClientRect();
+      if (vp.width < 2) return;
+      FOCUS_X = Math.min(1, Math.max(0, (e.clientX - vp.left) / vp.width));
+      FOCUS_Y = Math.min(1, Math.max(0, (e.clientY - vp.top) / vp.height));
+      render();
+    };
+
+    stage.addEventListener('pointerdown', (e) => {
+      picking = true;
+      stage.setPointerCapture?.(e.pointerId);
+      setFocus(e);
+      e.preventDefault();
+    });
+    stage.addEventListener('pointermove', (e) => { if (picking) setFocus(e); });
+    const stop = (e) => { picking = false; stage.releasePointerCapture?.(e.pointerId); };
+    stage.addEventListener('pointerup', stop);
+    stage.addEventListener('pointercancel', stop);
+  })();
 
   const dlg = $('whyDialog');
   [$('whyBtnDesktop'), $('whyBtnMobile'), $('whyBtnInline')].forEach((b) => b?.addEventListener('click', () => dlg.showModal()));
